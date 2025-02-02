@@ -1,8 +1,4 @@
-// Criamos uma barra de navegação fixa no topo
-// Incluímos campo de busca, botão de troca de tema (claro/escuro)
-// Adicionamos botões para carrinho e login
-// Usamos componentes do Chakra UI para estilização
-
+// src/components/Navbar.jsx
 import React from 'react';
 import {
   Box,
@@ -16,7 +12,7 @@ import {
   InputRightElement,
   IconButton,
 } from '@chakra-ui/react';
-import { MoonIcon, SunIcon, SearchIcon, ShoppingCartIcon } from '@chakra-ui/icons';
+import { MoonIcon, SunIcon, SearchIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
 
 export default function Navbar() {
@@ -58,11 +54,9 @@ export default function Navbar() {
           </Button>
           
           <Link to="/cart">
-            <IconButton
-              icon={<ShoppingCartIcon />}
-              variant="ghost"
-              aria-label="Carrinho"
-            />
+            <Button variant="ghost" aria-label="Carrinho">
+              🛒
+            </Button>
           </Link>
           
           <Link to="/login">
