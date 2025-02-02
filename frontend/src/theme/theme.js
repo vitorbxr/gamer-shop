@@ -1,3 +1,5 @@
+//Arquivo de tema
+
 import { extendTheme } from '@chakra-ui/react';
 
 const theme = extendTheme({

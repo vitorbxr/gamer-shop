@@ -11,92 +11,125 @@ import {
   Button,
   Badge,
   HStack,
-  NumberInput,
-  NumberInputField,
-  NumberInputStepper,
-  NumberIncrementStepper,
-  NumberDecrementStepper,
+  useNumberInput,
+  Input,
   Tabs,
   TabList,
   TabPanels,
   Tab,
   TabPanel,
+  List,
+  ListItem,
+  ListIcon,
+  useColorModeValue,
   useToast
 } from '@chakra-ui/react';
+import { CheckIcon, InfoOutlineIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
 
 function ProductDetail() {
   const { id } = useParams();
-  const [quantity, setQuantity] = useState(1);
+  const [selectedImage, setSelectedImage] = useState(0);
   const toast = useToast();
+  
+  // Configuração do input de quantidade
+  const { getInputProps, getIncrementButtonProps, getDecrementButtonProps } =
+    useNumberInput({
+      step: 1,
+      defaultValue: 1,
+      min: 1,
+      max: 20,
+    });
 
-  // Dados mockados para teste
+  const inc = getIncrementButtonProps();
+  const dec = getDecrementButtonProps();
+  const input = getInputProps();
+
+  // Dados mockados do produto
   const product = {
-    id: 1,
-    name: "Mouse Gamer RGB PRO",
+    id: parseInt(id),
+    name: "Mouse Gamer RGB Pro X",
     price: 299.99,
-    description: "Mouse gamer profissional com iluminação RGB personalizada, sensor óptico de alta precisão e design ergonômico para máximo conforto durante longas sessões de jogo.",
-    specifications: {
-      dpi: "16000 DPI",
-      buttons: "8 botões programáveis",
-      rgb: "RGB Chroma com 16.8 milhões de cores",
-      connection: "USB 2.0 de alta velocidade",
-      weight: "95g"
-    },
-    features: [
-      "Sensor óptico de última geração",
-      "Switches mecânicos duráveis",
-      "Perfis de memória integrada",
-      "Software de personalização avançado"
-    ],
+    description: "Mouse gamer profissional com sensor óptico de alta precisão, iluminação RGB personalizável e design ergonômico para máximo desempenho em jogos.",
     images: [
-      "/placeholder-product.jpg",
-      "/placeholder-product.jpg",
-      "/placeholder-product.jpg"
+      "/placeholder-image.jpg",
+      "/placeholder-image.jpg",
+      "/placeholder-image.jpg"
+    ],
+    specifications: [
+      "Sensor óptico de 16.000 DPI",
+      "8 botões programáveis",
+      "Switch mecânico durável",
+      "Memória integrada para perfis",
+      "Peso ajustável"
+    ],
+    features: [
+      "RGB Chroma com 16.8 milhões de cores",
+      "Polling rate de 1000Hz",
+      "Cabo trançado de 2.1m",
+      "Compatível com software de personalização"
     ],
     inStock: true,
     stockQuantity: 15,
     isNew: true,
-    rating: 4.5,
-    reviews: 128
+    warranty: "12 meses de garantia"
   };
 
   const handleAddToCart = () => {
     toast({
-      title: "Produto adicionado",
-      description: `${quantity} unidade(s) de ${product.name} adicionada(s) ao carrinho`,
+      title: "Produto adicionado ao carrinho",
+      description: `${input.value} unidade(s) de ${product.name}`,
       status: "success",
       duration: 3000,
       isClosable: true,
     });
   };
 
+  const bgColor = useColorModeValue('white', 'gray.800');
+  const borderColor = useColorModeValue('gray.200', 'gray.700');
+
   return (
     <Container maxW="container.xl" py={8}>
-      <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={8}>
-        {/* Imagem do Produto */}
-        <Box>
-          <Image
-            src={product.images[0]}
-            alt={product.name}
-            borderRadius="lg"
-            fallbackSrc="https://via.placeholder.com/500x500"
-          />
-          <HStack mt={4} spacing={4} overflowX="auto" py={2}>
-            {product.images.map((img, index) => (
-              <Image
+      <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
+        {/* Galeria de Imagens */}
+        <VStack spacing={4}>
+          <Box 
+            borderWidth="1px" 
+            borderRadius="lg" 
+            overflow="hidden"
+            bg={bgColor}
+            borderColor={borderColor}
+          >
+            <Image
+              src={product.images[selectedImage]}
+              alt={product.name}
+              width="100%"
+              height="400px"
+              objectFit="cover"
+            />
+          </Box>
+          <HStack spacing={4}>
+            {product.images.map((image, index) => (
+              <Box
                 key={index}
-                src={img}
-                alt={`${product.name} - imagem ${index + 1}`}
-                boxSize="100px"
-                objectFit="cover"
+                borderWidth="2px"
                 borderRadius="md"
+                borderColor={selectedImage === index ? "blue.500" : "gray.200"}
+                overflow="hidden"
                 cursor="pointer"
-                fallbackSrc="https://via.placeholder.com/100x100"
-              />
+                onClick={() => setSelectedImage(index)}
+              >
+                <Image
+                  src={image}
+                  alt={`${product.name} - imagem ${index + 1}`}
+                  width="80px"
+                  height="80px"
+                  objectFit="cover"
+                />
+              </Box>
             ))}
           </HStack>
-        </Box>
+        </VStack>
 
         {/* Informações do Produto */}
         <VStack align="stretch" spacing={6}>
@@ -109,7 +142,7 @@ function ProductDetail() {
                 <Badge colorScheme="red">Fora de Estoque</Badge>
               )}
             </HStack>
-            
+
             <Heading size="lg" mb={2}>{product.name}</Heading>
             <Text fontSize="2xl" fontWeight="bold" color="brand.primary">
               R$ {product.price.toFixed(2)}
@@ -118,21 +151,14 @@ function ProductDetail() {
 
           <Text>{product.description}</Text>
 
+          {/* Seletor de Quantidade e Botão de Compra */}
           {product.inStock && (
-            <HStack>
-              <NumberInput
-                defaultValue={1}
-                min={1}
-                max={product.stockQuantity}
-                onChange={(value) => setQuantity(parseInt(value))}
-                w="100px"
-              >
-                <NumberInputField />
-                <NumberInputStepper>
-                  <NumberIncrementStepper />
-                  <NumberDecrementStepper />
-                </NumberInputStepper>
-              </NumberInput>
+            <HStack spacing={4}>
+              <HStack maxW="320px">
+                <Button {...dec}>-</Button>
+                <Input {...input} readOnly textAlign="center" />
+                <Button {...inc}>+</Button>
+              </HStack>
               <Button
                 colorScheme="blue"
                 size="lg"
@@ -144,31 +170,39 @@ function ProductDetail() {
             </HStack>
           )}
 
+          {/* Abas de Informações */}
           <Tabs>
             <TabList>
               <Tab>Especificações</Tab>
               <Tab>Características</Tab>
+              <Tab>Garantia</Tab>
             </TabList>
 
             <TabPanels>
               <TabPanel>
-                <VStack align="stretch" spacing={2}>
-                  {Object.entries(product.specifications).map(([key, value]) => (
-                    <HStack key={key} justify="space-between">
-                      <Text fontWeight="bold" textTransform="capitalize">
-                        {key}:
-                      </Text>
-                      <Text>{value}</Text>
-                    </HStack>
+                <List spacing={3}>
+                  {product.specifications.map((spec, index) => (
+                    <ListItem key={index}>
+                      <ListIcon as={CheckIcon} color="green.500" />
+                      {spec}
+                    </ListItem>
                   ))}
-                </VStack>
+                </List>
               </TabPanel>
+
               <TabPanel>
-                <VStack align="stretch" spacing={2}>
+                <List spacing={3}>
                   {product.features.map((feature, index) => (
-                    <Text key={index}>• {feature}</Text>
+                    <ListItem key={index}>
+                      <ListIcon as={InfoOutlineIcon} color="blue.500" />
+                      {feature}
+                    </ListItem>
                   ))}
-                </VStack>
+                </List>
+              </TabPanel>
+
+              <TabPanel>
+                <Text>{product.warranty}</Text>
               </TabPanel>
             </TabPanels>
           </Tabs>
