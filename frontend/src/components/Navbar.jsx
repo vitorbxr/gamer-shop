@@ -11,6 +11,7 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  HStack
 } from '@chakra-ui/react';
 import { MoonIcon, SunIcon, SearchIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
@@ -31,6 +32,13 @@ export default function Navbar() {
         <Box fontWeight="bold" fontSize="xl" color="brand.primary">
           <Link to="/">GamerShop</Link>
         </Box>
+
+        {/* Links de teste */}
+        <HStack spacing={4}>
+          <Link to="/"><Button variant="ghost">Home</Button></Link>
+          <Link to="/products"><Button variant="ghost">Produtos</Button></Link>
+          <Link to="/product/1"><Button variant="ghost">Produto 1</Button></Link>
+        </HStack>
 
         <Flex alignItems="center" flex={1} mx={8}>
           <InputGroup>
@@ -54,7 +62,7 @@ export default function Navbar() {
           </Button>
           
           <Link to="/cart">
-            <Button variant="ghost" aria-label="Carrinho">
+            <Button variant="ghost">
               🛒
             </Button>
           </Link>

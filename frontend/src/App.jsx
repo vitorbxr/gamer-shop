@@ -1,13 +1,8 @@
-// Configuramos as rotas principais da aplicação
-// Criamos a estrutura básica com navbar fixa
-// Definimos as principais páginas que precisaremos criar
-
+// src/App.jsx
 import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Box } from '@chakra-ui/react'
 import Navbar from './components/Navbar'
-
-// Importação das páginas (vamos criar em seguida)
 import Home from './pages/Home'
 import ProductList from './pages/ProductList'
 import ProductDetail from './pages/ProductDetail'
@@ -18,7 +13,7 @@ function App() {
   return (
     <Box>
       <Navbar />
-      <Box pt="64px"> {/* Espaço para a navbar fixa */}
+      <Box pt="64px">
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/products" element={<ProductList />} />
@@ -31,4 +26,4 @@ function App() {
   )
 }
 
-export default App
+export default App;

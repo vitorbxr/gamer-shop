@@ -25,7 +25,7 @@ function ProductList() {
       id: 1,
       name: "Mouse Gamer RGB PRO",
       price: 299.99,
-      image: "/placeholder-product.jpg",
+      image: "https://via.placeholder.com/300x300",
       isNew: true,
       inStock: true,
       category: "mouse"
@@ -34,7 +34,7 @@ function ProductList() {
       id: 2,
       name: "Teclado Mecânico RGB",
       price: 499.99,
-      image: "/placeholder-product.jpg",
+      image: "https://via.placeholder.com/300x300",
       isNew: false,
       inStock: true,
       category: "teclado"
@@ -43,7 +43,7 @@ function ProductList() {
       id: 3,
       name: "Headset Gamer 7.1",
       price: 399.99,
-      image: "/placeholder-product.jpg",
+      image: "https://via.placeholder.com/300x300",
       isNew: true,
       inStock: false,
       category: "audio"
@@ -52,7 +52,7 @@ function ProductList() {
       id: 4,
       name: "Mouse Pad XL RGB",
       price: 159.99,
-      image: "/placeholder-product.jpg",
+      image: "https://via.placeholder.com/300x300",
       isNew: false,
       inStock: true,
       category: "acessorios"
@@ -62,6 +62,8 @@ function ProductList() {
   const [priceRange, setPriceRange] = useState([0, 1000]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [sortBy, setSortBy] = useState('');
+
+  console.log('Rendering ProductList with products:', mockProducts);
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -122,9 +124,15 @@ function ProductList() {
           </HStack>
 
           <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-            {mockProducts.map(product => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {mockProducts.map(product => {
+              console.log('Rendering product:', product);
+              return (
+                <ProductCard 
+                  key={product.id} 
+                  product={product} 
+                />
+              );
+            })}
           </SimpleGrid>
         </Box>
       </Grid>
