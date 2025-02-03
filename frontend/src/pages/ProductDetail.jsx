@@ -26,13 +26,13 @@ import {
 } from '@chakra-ui/react';
 import { CheckIcon, InfoOutlineIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
+import { formatPrice } from '../utils/format.js';
 
 function ProductDetail() {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const toast = useToast();
   
-  // Configuração do input de quantidade
   const { getInputProps, getIncrementButtonProps, getDecrementButtonProps } =
     useNumberInput({
       step: 1,
@@ -49,7 +49,7 @@ function ProductDetail() {
   const product = {
     id: parseInt(id),
     name: "Mouse Gamer RGB Pro X",
-    price: 299.99,
+    price: 1299.99,
     description: "Mouse gamer profissional com sensor óptico de alta precisão, iluminação RGB personalizável e design ergonômico para máximo desempenho em jogos.",
     images: [
       "/placeholder-image.jpg",
@@ -87,7 +87,6 @@ function ProductDetail() {
 
   const bgColor = useColorModeValue('white', 'gray.800');
   const borderColor = useColorModeValue('gray.200', 'gray.700');
-
   return (
     <Container maxW="container.xl" py={8}>
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
@@ -145,7 +144,7 @@ function ProductDetail() {
 
             <Heading size="lg" mb={2}>{product.name}</Heading>
             <Text fontSize="2xl" fontWeight="bold" color="brand.primary">
-              R$ {product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </Text>
           </Box>
 

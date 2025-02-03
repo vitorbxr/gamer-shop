@@ -11,6 +11,7 @@ import {
   useColorModeValue
 } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
+import { formatPrice } from '../utils/format';
 
 function ProductCard({ product }) {
   const cardBg = useColorModeValue('white', 'gray.800');
@@ -18,7 +19,7 @@ function ProductCard({ product }) {
   const textColor = useColorModeValue('gray.800', 'white');
 
   const handleAddToCart = (e) => {
-    e.preventDefault(); // Previne a navegação
+    e.preventDefault();
     console.log('Add to cart clicked');
     alert('Produto adicionado ao carrinho!');
   };
@@ -39,7 +40,7 @@ function ProductCard({ product }) {
         }}
       >
         <Image
-          src="/placeholder-image.jpg"
+          src={product.image}
           alt={product.name}
           height="200px"
           width="100%"
@@ -64,7 +65,7 @@ function ProductCard({ product }) {
               fontSize="lg"
               lineHeight="tight"
               isTruncated
-              color={textColor}  // Adicionado cor do texto
+              color={textColor}
             >
               {product.name}
             </Text>
@@ -74,7 +75,7 @@ function ProductCard({ product }) {
               fontWeight="bold" 
               color="brand.primary"
             >
-              R$ {product.price.toFixed(2)}
+              {formatPrice(product.price)}
             </Text>
 
             <Button
