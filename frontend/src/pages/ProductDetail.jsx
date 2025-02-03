@@ -32,7 +32,7 @@ function ProductDetail() {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const toast = useToast();
-  const { addToCart } = useCart();
+  const { addToCart } = useCart(); // Adicionando o hook useCart
   
   const { getInputProps, getIncrementButtonProps, getDecrementButtonProps, value } =
     useNumberInput({
@@ -77,7 +77,8 @@ function ProductDetail() {
   };
 
   const handleAddToCart = () => {
-    addToCart(product, parseInt(value));
+    const quantity = parseInt(value);
+    addToCart(product, quantity); // Usando a função addToCart do contexto
   };
 
   return (
