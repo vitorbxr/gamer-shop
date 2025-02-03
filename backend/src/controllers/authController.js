@@ -40,9 +40,11 @@ export const register = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       token
     });
   } catch (error) {
+    console.error('Erro no registro:', error);
     res.status(500).json({ message: 'Erro ao criar usuário', error: error.message });
   }
 };
@@ -77,9 +79,11 @@ export const login = async (req, res) => {
       id: user.id,
       name: user.name,
       email: user.email,
+      role: user.role,
       token
     });
   } catch (error) {
+    console.error('Erro no login:', error);
     res.status(500).json({ message: 'Erro ao fazer login', error: error.message });
   }
 };
