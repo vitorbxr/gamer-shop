@@ -1,4 +1,4 @@
-// src/pages/Login.jsx
+// src/pages/Register.jsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -19,25 +19,52 @@ import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-function Login() {
+function Register() {
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { login } = useAuth();
+
+  const { register } = useAuth();
   const navigate = useNavigate();
   const toast = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validações
+    if (password !== confirmPassword) {
+      toast({
+        title: 'Erro',
+        description: 'As senhas não coincidem',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: 'Erro',
+        description: 'A senha deve ter pelo menos 6 caracteres',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    const result = await login(email, password);
+    const result = await register(name, email, password);
 
     if (result.success) {
       toast({
-        title: 'Login realizado com sucesso!',
+        title: 'Conta criada com sucesso!',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -45,7 +72,7 @@ function Login() {
       navigate('/');
     } else {
       toast({
-        title: 'Erro ao fazer login',
+        title: 'Erro ao criar conta',
         description: result.error,
         status: 'error',
         duration: 3000,
@@ -67,10 +94,19 @@ function Login() {
         borderColor="gray.200"
       >
         <Stack spacing={4}>
-          <Heading textAlign="center" mb={4}>Login</Heading>
+          <Heading textAlign="center" mb={4}>Criar Conta</Heading>
 
           <form onSubmit={handleSubmit}>
             <Stack spacing={4}>
+              <FormControl id="name" isRequired>
+                <FormLabel>Nome</FormLabel>
+                <Input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </FormControl>
+
               <FormControl id="email" isRequired>
                 <FormLabel>Email</FormLabel>
                 <Input
@@ -99,21 +135,40 @@ function Login() {
                 </InputGroup>
               </FormControl>
 
+              <FormControl id="confirmPassword" isRequired>
+                <FormLabel>Confirmar Senha</FormLabel>
+                <InputGroup>
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                  />
+                  <InputRightElement>
+                    <IconButton
+                      icon={showConfirmPassword ? <ViewOffIcon /> : <ViewIcon />}
+                      variant="ghost"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? 'Esconder senha' : 'Mostrar senha'}
+                    />
+                  </InputRightElement>
+                </InputGroup>
+              </FormControl>
+
               <Button
                 type="submit"
                 colorScheme="blue"
                 size="lg"
                 isLoading={isLoading}
               >
-                Entrar
+                Cadastrar
               </Button>
             </Stack>
           </form>
 
           <Text mt={4} textAlign="center">
-            Ainda não tem uma conta?{' '}
-            <Link to="/register" style={{ color: 'blue' }}>
-              Cadastre-se
+            Já tem uma conta?{' '}
+            <Link to="/login" style={{ color: 'blue' }}>
+              Faça login
             </Link>
           </Text>
         </Stack>
@@ -122,4 +177,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Register;
