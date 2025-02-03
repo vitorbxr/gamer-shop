@@ -13,6 +13,7 @@ import Cart from './pages/Cart'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
+import Checkout from './pages/Checkout'
 
 function App() {
   return (
@@ -39,6 +40,14 @@ function App() {
                 } 
               />
               <Route 
+                path="/checkout" 
+                element={
+                  <PrivateRoute>
+                    <Checkout />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
                 path="/profile" 
                 element={
                   <PrivateRoute>
@@ -54,4 +63,4 @@ function App() {
   )
 }
 
-export default App
+export default App;
