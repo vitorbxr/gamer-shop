@@ -3,6 +3,7 @@ import React from 'react'
 import { Routes, Route } from 'react-router-dom'
 import { Box } from '@chakra-ui/react'
 import { AuthProvider } from './contexts/AuthContext'
+import { CartProvider } from './contexts/CartContext'
 import PrivateRoute from './components/PrivateRoute'
 import Navbar from './components/Navbar'
 import Home from './pages/Home'
@@ -16,47 +17,39 @@ import Profile from './pages/Profile'
 function App() {
   return (
     <AuthProvider>
-      <Box>
-        <Navbar />
-        <Box pt="64px">
-          <Routes>
-            {/* Rotas Públicas */}
-            <Route path="/" element={<Home />} />
-            <Route path="/products" element={<ProductList />} />
-            <Route path="/product/:id" element={<ProductDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            
-            {/* Rotas Protegidas */}
-            <Route 
-              path="/cart" 
-              element={
-                <PrivateRoute>
-                  <Cart />
-                </PrivateRoute>
-              } 
-            />
-            <Route 
-              path="/profile" 
-              element={
-                <PrivateRoute>
-                  <Profile />
-                </PrivateRoute>
-              } 
-            />
-
-            {/* Rotas de Admin (exemplo) */}
-            <Route 
-              path="/admin" 
-              element={
-                <PrivateRoute adminOnly>
-                  <div>Painel Admin</div>
-                </PrivateRoute>
-              } 
-            />
-          </Routes>
+      <CartProvider>
+        <Box>
+          <Navbar />
+          <Box pt="64px">
+            <Routes>
+              {/* Rotas Públicas */}
+              <Route path="/" element={<Home />} />
+              <Route path="/products" element={<ProductList />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              
+              {/* Rotas Protegidas */}
+              <Route 
+                path="/cart" 
+                element={
+                  <PrivateRoute>
+                    <Cart />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/profile" 
+                element={
+                  <PrivateRoute>
+                    <Profile />
+                  </PrivateRoute>
+                } 
+              />
+            </Routes>
+          </Box>
         </Box>
-      </Box>
+      </CartProvider>
     </AuthProvider>
   )
 }

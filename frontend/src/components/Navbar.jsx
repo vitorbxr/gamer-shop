@@ -15,20 +15,25 @@ import {
   MenuItem,
   Avatar,
   Text,
-  HStack
+  HStack,
+  Badge,
 } from '@chakra-ui/react';
 import { SearchIcon, ChevronDownIcon } from '@chakra-ui/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCart } from '../contexts/CartContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
+  const { getCartCount } = useCart();
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
+
+  const cartCount = getCartCount();
 
   return (
     <Box
@@ -45,7 +50,6 @@ export default function Navbar() {
           <Link to="/">GamerShop</Link>
         </Box>
 
-        {/* Links de navegação */}
         <HStack spacing={4} display={{ base: 'none', md: 'flex' }}>
           <Link to="/"><Button variant="ghost">Home</Button></Link>
           <Link to="/products"><Button variant="ghost">Produtos</Button></Link>
@@ -68,11 +72,24 @@ export default function Navbar() {
         </Flex>
 
         <Stack direction="row" spacing={4} alignItems="center">
-          <Link to="/cart">
-            <Button variant="ghost">
-              🛒
-            </Button>
-          </Link>
+          <Box position="relative">
+            <Link to="/cart">
+              <Button variant="ghost">
+                🛒
+              </Button>
+              {cartCount > 0 && (
+                <Badge
+                  colorScheme="red"
+                  borderRadius="full"
+                  position="absolute"
+                  top="-1"
+                  right="-1"
+                >
+                  {cartCount}
+                </Badge>
+              )}
+            </Link>
+          </Box>
           
           {user ? (
             <Menu>
