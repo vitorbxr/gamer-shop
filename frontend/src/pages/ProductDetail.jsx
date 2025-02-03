@@ -21,19 +21,20 @@ import {
   List,
   ListItem,
   ListIcon,
-  useColorModeValue,
   useToast
 } from '@chakra-ui/react';
 import { CheckIcon, InfoOutlineIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
 import { formatPrice } from '../utils/format.js';
+import { useCart } from '../contexts/CartContext';
 
 function ProductDetail() {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
   const toast = useToast();
+  const { addToCart } = useCart();
   
-  const { getInputProps, getIncrementButtonProps, getDecrementButtonProps } =
+  const { getInputProps, getIncrementButtonProps, getDecrementButtonProps, value } =
     useNumberInput({
       step: 1,
       defaultValue: 1,
@@ -76,17 +77,9 @@ function ProductDetail() {
   };
 
   const handleAddToCart = () => {
-    toast({
-      title: "Produto adicionado ao carrinho",
-      description: `${input.value} unidade(s) de ${product.name}`,
-      status: "success",
-      duration: 3000,
-      isClosable: true,
-    });
+    addToCart(product, parseInt(value));
   };
 
-  const bgColor = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
   return (
     <Container maxW="container.xl" py={8}>
       <Grid templateColumns={{ base: "1fr", lg: "1fr 1fr" }} gap={8}>
@@ -96,8 +89,8 @@ function ProductDetail() {
             borderWidth="1px" 
             borderRadius="lg" 
             overflow="hidden"
-            bg={bgColor}
-            borderColor={borderColor}
+            bg="white"
+            borderColor="gray.200"
           >
             <Image
               src={product.images[selectedImage]}
