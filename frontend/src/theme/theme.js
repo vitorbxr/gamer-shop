@@ -1,24 +1,19 @@
-//Arquivo de tema
-
+// src/theme/theme.js
 import { extendTheme } from '@chakra-ui/react';
 
 const theme = extendTheme({
+  config: {
+    initialColorMode: 'light',
+    useSystemColorMode: false,
+  },
   colors: {
     brand: {
       primary: '#00FF00', // Verde neon
       secondary: '#FF00FF', // Rosa neon
-      background: '#1A1A1A', // Fundo escuro
-      card: '#2D2D2D', // Cor dos cards
-      text: '#FFFFFF', // Texto principal
+      background: '#FFFFFF', // Fundo claro
+      card: '#FFFFFF', // Cards brancos
+      text: '#333333', // Texto escuro
       accent: '#00FFFF', // Detalhes em ciano
-    },
-  },
-  styles: {
-    global: {
-      body: {
-        bg: 'brand.background',
-        color: 'brand.text',
-      },
     },
   },
   components: {

@@ -8,16 +8,11 @@ import {
   VStack,
   HStack,
   Badge,
-  useColorModeValue
 } from '@chakra-ui/react';
 import { Link } from 'react-router-dom';
-import { formatPrice } from '../utils/format';
+import { formatPrice } from '../utils/format.js';
 
 function ProductCard({ product }) {
-  const cardBg = useColorModeValue('white', 'gray.800');
-  const borderColor = useColorModeValue('gray.200', 'gray.700');
-  const textColor = useColorModeValue('gray.800', 'white');
-
   const handleAddToCart = (e) => {
     e.preventDefault();
     console.log('Add to cart clicked');
@@ -31,8 +26,8 @@ function ProductCard({ product }) {
         borderWidth="1px"
         borderRadius="lg"
         overflow="hidden"
-        borderColor={borderColor}
-        bg={cardBg}
+        borderColor="gray.200"
+        bg="white"
         transition="transform 0.2s"
         _hover={{
           transform: 'translateY(-5px)',
@@ -65,7 +60,7 @@ function ProductCard({ product }) {
               fontSize="lg"
               lineHeight="tight"
               isTruncated
-              color={textColor}
+              color="gray.800"
             >
               {product.name}
             </Text>

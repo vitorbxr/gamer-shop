@@ -4,47 +4,43 @@ import {
   Box,
   Flex,
   Button,
-  useColorModeValue,
   Stack,
-  useColorMode,
   Input,
   InputGroup,
   InputRightElement,
   IconButton,
   HStack
 } from '@chakra-ui/react';
-import { MoonIcon, SunIcon, SearchIcon } from '@chakra-ui/icons';
+import { SearchIcon } from '@chakra-ui/icons';
 import { Link } from 'react-router-dom';
 
 export default function Navbar() {
-  const { colorMode, toggleColorMode } = useColorMode();
-  
   return (
     <Box
-      bg={useColorModeValue('gray.100', 'gray.900')}
+      bg="white"
       px={4}
       position="fixed"
       width="100%"
       top={0}
       zIndex={1000}
+      boxShadow="sm"
     >
-      <Flex h={16} alignItems={'center'} justifyContent={'space-between'}>
+      <Flex h={16} alignItems="center" justifyContent="space-between">
         <Box fontWeight="bold" fontSize="xl" color="brand.primary">
           <Link to="/">GamerShop</Link>
         </Box>
 
-        {/* Links de teste */}
-        <HStack spacing={4}>
+        {/* Links de navegação */}
+        <HStack spacing={4} display={{ base: 'none', md: 'flex' }}>
           <Link to="/"><Button variant="ghost">Home</Button></Link>
           <Link to="/products"><Button variant="ghost">Produtos</Button></Link>
-          <Link to="/product/1"><Button variant="ghost">Produto 1</Button></Link>
         </HStack>
 
         <Flex alignItems="center" flex={1} mx={8}>
           <InputGroup>
             <Input
               placeholder="Buscar produtos..."
-              bg={useColorModeValue('white', 'gray.700')}
+              bg="gray.100"
             />
             <InputRightElement>
               <IconButton
@@ -56,11 +52,7 @@ export default function Navbar() {
           </InputGroup>
         </Flex>
 
-        <Stack direction={'row'} spacing={4} alignItems="center">
-          <Button onClick={toggleColorMode}>
-            {colorMode === 'light' ? <MoonIcon /> : <SunIcon />}
-          </Button>
-          
+        <Stack direction="row" spacing={4} alignItems="center">
           <Link to="/cart">
             <Button variant="ghost">
               🛒
@@ -68,7 +60,7 @@ export default function Navbar() {
           </Link>
           
           <Link to="/login">
-            <Button variant="outline" colorScheme="brand">
+            <Button variant="outline" colorScheme="blue">
               Login
             </Button>
           </Link>
