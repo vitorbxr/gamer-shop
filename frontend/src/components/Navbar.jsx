@@ -9,12 +9,27 @@ import {
   InputGroup,
   InputRightElement,
   IconButton,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Avatar,
+  Text,
   HStack
 } from '@chakra-ui/react';
-import { SearchIcon } from '@chakra-ui/icons';
-import { Link } from 'react-router-dom';
+import { SearchIcon, ChevronDownIcon } from '@chakra-ui/icons';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Navbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <Box
       bg="white"
@@ -59,11 +74,36 @@ export default function Navbar() {
             </Button>
           </Link>
           
-          <Link to="/login">
-            <Button variant="outline" colorScheme="blue">
-              Login
-            </Button>
-          </Link>
+          {user ? (
+            <Menu>
+              <MenuButton
+                as={Button}
+                rightIcon={<ChevronDownIcon />}
+                variant="ghost"
+              >
+                <HStack spacing={2}>
+                  <Avatar size="sm" name={user.name} />
+                  <Text>{user.name}</Text>
+                </HStack>
+              </MenuButton>
+              <MenuList>
+                <MenuItem as={Link} to="/profile">Meu Perfil</MenuItem>
+                <MenuItem as={Link} to="/orders">Meus Pedidos</MenuItem>
+                {user.role === 'ADMIN' && (
+                  <MenuItem as={Link} to="/admin">Painel Admin</MenuItem>
+                )}
+                <MenuItem onClick={handleLogout} color="red.500">
+                  Sair
+                </MenuItem>
+              </MenuList>
+            </Menu>
+          ) : (
+            <Link to="/login">
+              <Button variant="outline" colorScheme="blue">
+                Login
+              </Button>
+            </Link>
+          )}
         </Stack>
       </Flex>
     </Box>
