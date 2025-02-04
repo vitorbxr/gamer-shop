@@ -14,6 +14,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Profile from './pages/Profile'
 import Checkout from './pages/Checkout'
+import OrderHistory from './pages/OrderHistory';
 
 function App() {
   return (
@@ -29,6 +30,7 @@ function App() {
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+
               
               {/* Rotas Protegidas */}
               <Route 
@@ -52,6 +54,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <Profile />
+                  </PrivateRoute>
+                } 
+              />
+              <Route 
+                path="/orders" 
+                element={
+                  <PrivateRoute>
+                    <OrderHistory />
                   </PrivateRoute>
                 } 
               />
