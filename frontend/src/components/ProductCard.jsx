@@ -8,23 +8,38 @@ import {
   VStack,
   HStack,
   Badge,
-  useColorModeValue
+  IconButton,
+  Tooltip,
 } from '@chakra-ui/react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import { HeartIcon, HeartFilledIcon } from '@chakra-ui/icons';
 import { formatPrice } from '../utils/format.js';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/WishlistContext';
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
 
-  const handleAddToCart = (e) => {
-    e.preventDefault(); // Previne a navegação
-    addToCart(product, 1);
-  };
+  const isFavorite = isInWishlist(product.id);
 
   const handleClick = () => {
     navigate(`/product/${product.id}`);
+  };
+
+  const handleAddToCart = (e) => {
+    e.stopPropagation();
+    addToCart(product, 1);
+  };
+
+  const handleToggleWishlist = (e) => {
+    e.stopPropagation();
+    if (isFavorite) {
+      removeFromWishlist(product.id);
+    } else {
+      addToWishlist(product);
+    }
   };
 
   return (
@@ -42,7 +57,23 @@ function ProductCard({ product }) {
       }}
       onClick={handleClick}
       cursor="pointer"
+      position="relative"
     >
+      {/* Botão de Favoritos */}
+      <Tooltip label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}>
+        <IconButton
+          icon={isFavorite ? <HeartFilledIcon /> : <HeartIcon />}
+          position="absolute"
+          top={2}
+          right={2}
+          colorScheme={isFavorite ? "red" : "gray"}
+          variant="ghost"
+          onClick={handleToggleWishlist}
+          aria-label="Favoritar produto"
+          zIndex={2}
+        />
+      </Tooltip>
+
       <Image
         src={product.image}
         alt={product.name}
