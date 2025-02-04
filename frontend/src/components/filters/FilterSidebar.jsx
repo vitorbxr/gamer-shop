@@ -41,7 +41,7 @@ const brands = [
   'Intel'
 ];
 
-function FilterSidebar({ 
+function FilterSidebar({
   selectedCategories,
   selectedBrands,
   priceRange,

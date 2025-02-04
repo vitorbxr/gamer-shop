@@ -5,6 +5,7 @@ import {
   Container,
   Grid,
   SimpleGrid,
+  VStack,
   Input,
   InputGroup,
   InputRightElement,
@@ -18,7 +19,7 @@ import { SearchIcon } from '@chakra-ui/icons';
 import ProductCard from '../components/ProductCard';
 import FilterSidebar from '../components/filters/FilterSidebar';
 
-// Dados mockados para teste
+// Produtos mockados para teste
 const mockProducts = [
   {
     id: 1,
@@ -40,11 +41,40 @@ const mockProducts = [
     isNew: false,
     inStock: true
   },
-  // Adicione mais produtos mockados aqui
+  {
+    id: 3,
+    name: "Headset 7.1 Surround",
+    price: 399.99,
+    category: "headset",
+    brand: "HyperX",
+    image: "/placeholder-image.jpg",
+    isNew: true,
+    inStock: true
+  },
+  {
+    id: 4,
+    name: "Monitor Gaming 144Hz",
+    price: 1499.99,
+    category: "monitor",
+    brand: "ASUS",
+    image: "/placeholder-image.jpg",
+    isNew: true,
+    inStock: true
+  },
+  {
+    id: 5,
+    name: "RTX 4070 Gaming",
+    price: 3999.99,
+    category: "gpu",
+    brand: "NVIDIA",
+    image: "/placeholder-image.jpg",
+    isNew: true,
+    inStock: false
+  }
 ];
-
 function ProductList() {
-  const [products, setProducts] = useState(mockProducts);
+  // Estados
+  const [products] = useState(mockProducts);
   const [filteredProducts, setFilteredProducts] = useState(mockProducts);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategories, setSelectedCategories] = useState([]);
@@ -54,37 +84,37 @@ function ProductList() {
 
   const toast = useToast();
 
-  // Aplica todos os filtros
+  // Efeito para aplicar filtros
   useEffect(() => {
     let result = [...products];
 
-    // Filtro de busca
+    // Aplicar busca
     if (searchQuery) {
       result = result.filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
 
-    // Filtro de categorias
+    // Aplicar filtros de categoria
     if (selectedCategories.length > 0) {
       result = result.filter(product =>
         selectedCategories.includes(product.category)
       );
     }
 
-    // Filtro de marcas
+    // Aplicar filtros de marca
     if (selectedBrands.length > 0) {
       result = result.filter(product =>
         selectedBrands.includes(product.brand)
       );
     }
 
-    // Filtro de preço
+    // Aplicar filtro de preço
     result = result.filter(product =>
       product.price >= priceRange[0] && product.price <= priceRange[1]
     );
 
-    // Ordenação
+    // Aplicar ordenação
     if (sortBy) {
       result = [...result].sort((a, b) => {
         switch (sortBy) {
@@ -102,113 +132,113 @@ function ProductList() {
 
     setFilteredProducts(result);
   }, [products, searchQuery, selectedCategories, selectedBrands, priceRange, sortBy]);
+// Handlers
+const handleSearch = (e) => {
+  e.preventDefault();
+  // A busca já está sendo aplicada pelo useEffect
+};
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    // A busca já está sendo aplicada pelo useEffect
-  };
-
-  const handleCategoryChange = (categoryId, isChecked) => {
-    setSelectedCategories(prev =>
-      isChecked
-        ? [...prev, categoryId]
-        : prev.filter(id => id !== categoryId)
-    );
-  };
-
-  const handleBrandChange = (brand, isChecked) => {
-    setSelectedBrands(prev =>
-      isChecked
-        ? [...prev, brand]
-        : prev.filter(b => b !== brand)
-    );
-  };
-
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategories([]);
-    setSelectedBrands([]);
-    setPriceRange([0, 5000]);
-    setSortBy('');
-
-    toast({
-      title: "Filtros limpos",
-      status: "info",
-      duration: 2000,
-      isClosable: true,
-    });
-  };
-
-  return (
-    <Container maxW="container.xl" py={8}>
-      <Grid templateColumns={{ base: "1fr", md: "250px 1fr" }} gap={8}>
-        {/* Filtros */}
-        <FilterSidebar
-          selectedCategories={selectedCategories}
-          selectedBrands={selectedBrands}
-          priceRange={priceRange}
-          onCategoryChange={handleCategoryChange}
-          onBrandChange={handleBrandChange}
-          onPriceChange={setPriceRange}
-          onClearFilters={handleClearFilters}
-        />
-
-        {/* Lista de Produtos */}
-        <Box>
-          <VStack spacing={6} align="stretch">
-            {/* Barra de Busca e Ordenação */}
-            <HStack spacing={4}>
-              <form onSubmit={handleSearch} style={{ flex: 1 }}>
-                <InputGroup>
-                  <Input
-                    placeholder="Buscar produtos..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <InputRightElement>
-                    <IconButton
-                      aria-label="Buscar"
-                      icon={<SearchIcon />}
-                      type="submit"
-                    />
-                  </InputRightElement>
-                </InputGroup>
-              </form>
-
-              <Select
-                width="200px"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="">Ordenar por</option>
-                <option value="price-asc">Menor preço</option>
-                <option value="price-desc">Maior preço</option>
-                <option value="name">Nome</option>
-              </Select>
-            </HStack>
-
-            {/* Resultados */}
-            <Text>
-              {filteredProducts.length} produtos encontrados
-            </Text>
-
-            {/* Grid de Produtos */}
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
-              {filteredProducts.map(product => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </SimpleGrid>
-
-            {filteredProducts.length === 0 && (
-              <Box textAlign="center" py={8}>
-                <Text>Nenhum produto encontrado com os filtros selecionados.</Text>
-              </Box>
-            )}
-          </VStack>
-        </Box>
-      </Grid>
-    </Container>
+const handleCategoryChange = (categoryId, isChecked) => {
+  setSelectedCategories(prev =>
+    isChecked
+      ? [...prev, categoryId]
+      : prev.filter(id => id !== categoryId)
   );
+};
+
+const handleBrandChange = (brand, isChecked) => {
+  setSelectedBrands(prev =>
+    isChecked
+      ? [...prev, brand]
+      : prev.filter(b => b !== brand)
+  );
+};
+
+const handleClearFilters = () => {
+  setSearchQuery('');
+  setSelectedCategories([]);
+  setSelectedBrands([]);
+  setPriceRange([0, 5000]);
+  setSortBy('');
+
+  toast({
+    title: "Filtros limpos",
+    status: "info",
+    duration: 2000,
+    isClosable: true,
+  });
+};
+
+return (
+  <Container maxW="container.xl" py={8}>
+    <Grid templateColumns={{ base: "1fr", md: "250px 1fr" }} gap={8}>
+      {/* Filtros */}
+      <FilterSidebar
+        selectedCategories={selectedCategories}
+        selectedBrands={selectedBrands}
+        priceRange={priceRange}
+        onCategoryChange={handleCategoryChange}
+        onBrandChange={handleBrandChange}
+        onPriceChange={setPriceRange}
+        onClearFilters={handleClearFilters}
+      />
+
+      {/* Lista de Produtos */}
+      <Box>
+        <VStack spacing={6} align="stretch">
+          {/* Barra de Busca e Ordenação */}
+          <HStack spacing={4}>
+            <form onSubmit={handleSearch} style={{ flex: 1 }}>
+              <InputGroup>
+                <Input
+                  placeholder="Buscar produtos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <InputRightElement>
+                  <IconButton
+                    aria-label="Buscar"
+                    icon={<SearchIcon />}
+                    type="submit"
+                  />
+                </InputRightElement>
+              </InputGroup>
+            </form>
+
+            <Select
+              width="200px"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+            >
+              <option value="">Ordenar por</option>
+              <option value="price-asc">Menor preço</option>
+              <option value="price-desc">Maior preço</option>
+              <option value="name">Nome</option>
+            </Select>
+          </HStack>
+
+          {/* Contador de Resultados */}
+          <Text>
+            {filteredProducts.length} produtos encontrados
+          </Text>
+
+          {/* Grid de Produtos */}
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
+            {filteredProducts.map(product => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </SimpleGrid>
+
+          {filteredProducts.length === 0 && (
+            <Box textAlign="center" py={8}>
+              <Text>Nenhum produto encontrado com os filtros selecionados.</Text>
+            </Box>
+          )}
+        </VStack>
+      </Box>
+    </Grid>
+  </Container>
+);
 }
 
 export default ProductList;
