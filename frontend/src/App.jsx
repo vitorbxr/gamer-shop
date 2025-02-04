@@ -18,6 +18,7 @@ import Checkout from './pages/Checkout'
 import OrderHistory from './pages/OrderHistory'
 import Wishlist from './pages/Wishlist'
 import Dashboard from './pages/admin/Dashboard'
+import Products from './pages/admin/Products'
 
 function App() {
   return (
@@ -84,7 +85,7 @@ function App() {
                     <PrivateRoute adminOnly>
                       <Routes>
                         <Route path="/" element={<Dashboard />} />
-                        <Route path="/products" element={<div>Produtos Admin</div>} />
+                        <Route path="/products" element={<Products />} />
                         <Route path="/categories" element={<div>Categorias</div>} />
                         <Route path="/orders" element={<div>Pedidos</div>} />
                         <Route path="/users" element={<div>Usuários</div>} />
