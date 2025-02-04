@@ -17,6 +17,7 @@ import Profile from './pages/Profile'
 import Checkout from './pages/Checkout'
 import OrderHistory from './pages/OrderHistory'
 import Wishlist from './pages/Wishlist'
+import Dashboard from './pages/admin/Dashboard'
 
 function App() {
   return (
@@ -72,6 +73,23 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Wishlist />
+                    </PrivateRoute>
+                  } 
+                />
+
+                {/* Rotas do Admin */}
+                <Route 
+                  path="/admin/*" 
+                  element={
+                    <PrivateRoute adminOnly>
+                      <Routes>
+                        <Route path="/" element={<Dashboard />} />
+                        <Route path="/products" element={<div>Produtos Admin</div>} />
+                        <Route path="/categories" element={<div>Categorias</div>} />
+                        <Route path="/orders" element={<div>Pedidos</div>} />
+                        <Route path="/users" element={<div>Usuários</div>} />
+                        <Route path="/settings" element={<div>Configurações</div>} />
+                      </Routes>
                     </PrivateRoute>
                   } 
                 />
