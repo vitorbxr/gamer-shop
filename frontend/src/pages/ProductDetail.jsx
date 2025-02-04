@@ -21,19 +21,44 @@ import {
   List,
   ListItem,
   ListIcon,
-  useToast
+  useToast,
+  Divider,
 } from '@chakra-ui/react';
 import { CheckIcon, InfoOutlineIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
 import { formatPrice } from '../utils/format.js';
 import { useCart } from '../contexts/CartContext';
+import Rating from '../components/ratings/Rating';
+import RatingsList from '../components/ratings/RatingsList';
+import RatingForm from '../components/ratings/RatingForm';
+
+// Dados mockados de avaliações para teste
+const mockReviews = [
+  {
+    id: 1,
+    userId: 1,
+    userName: "João Silva",
+    rating: 5,
+    comment: "Excelente produto! Superou minhas expectativas.",
+    date: "2024-02-01T10:00:00Z"
+  },
+  {
+    id: 2,
+    userId: 2,
+    userName: "Maria Santos",
+    rating: 4,
+    comment: "Muito bom, mas poderia ser um pouco mais barato.",
+    date: "2024-01-28T15:30:00Z"
+  }
+];
 
 function ProductDetail() {
   const { id } = useParams();
   const [selectedImage, setSelectedImage] = useState(0);
+  const [reviews, setReviews] = useState(mockReviews);
   const toast = useToast();
-  const { addToCart } = useCart(); // Adicionando o hook useCart
-  
+  const { addToCart } = useCart();
+
   const { getInputProps, getIncrementButtonProps, getDecrementButtonProps, value } =
     useNumberInput({
       step: 1,
@@ -51,7 +76,7 @@ function ProductDetail() {
     id: parseInt(id),
     name: "Mouse Gamer RGB Pro X",
     price: 1299.99,
-    description: "Mouse gamer profissional com sensor óptico de alta precisão, iluminação RGB personalizável e design ergonômico para máximo desempenho em jogos.",
+    description: "Mouse gamer profissional com sensor óptico de alta precisão.",
     images: [
       "/placeholder-image.jpg",
       "/placeholder-image.jpg",
@@ -73,13 +98,23 @@ function ProductDetail() {
     inStock: true,
     stockQuantity: 15,
     isNew: true,
-    warranty: "12 meses de garantia"
+    warranty: "12 meses de garantia",
+    averageRating: 4.5,
+    totalRatings: reviews.length
   };
 
   const handleAddToCart = () => {
     const quantity = parseInt(value);
-    addToCart(product, quantity); // Usando a função addToCart do contexto
+    addToCart(product, quantity);
   };
+
+  const handleRatingSubmit = async (newReview) => {
+    // Aqui você faria a chamada para a API
+    // Por enquanto, apenas adicionamos ao estado local
+    setReviews(prev => [...prev, { ...newReview, id: prev.length + 1 }]);
+  };
+
+  const averageRating = reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length;
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -137,6 +172,11 @@ function ProductDetail() {
             </HStack>
 
             <Heading size="lg" mb={2}>{product.name}</Heading>
+            
+            <HStack spacing={4} mb={4}>
+              <Rating rating={averageRating} totalRatings={reviews.length} />
+            </HStack>
+
             <Text fontSize="2xl" fontWeight="bold" color="brand.primary">
               {formatPrice(product.price)}
             </Text>
@@ -168,7 +208,7 @@ function ProductDetail() {
             <TabList>
               <Tab>Especificações</Tab>
               <Tab>Características</Tab>
-              <Tab>Garantia</Tab>
+              <Tab>Avaliações</Tab>
             </TabList>
 
             <TabPanels>
@@ -195,7 +235,22 @@ function ProductDetail() {
               </TabPanel>
 
               <TabPanel>
-                <Text>{product.warranty}</Text>
+                <VStack spacing={6} align="stretch">
+                  <Box>
+                    <Heading size="md" mb={4}>Adicionar Avaliação</Heading>
+                    <RatingForm 
+                      productId={product.id} 
+                      onRatingSubmit={handleRatingSubmit} 
+                    />
+                  </Box>
+
+                  <Divider />
+
+                  <Box>
+                    <Heading size="md" mb={4}>Avaliações dos Clientes</Heading>
+                    <RatingsList reviews={reviews} />
+                  </Box>
+                </VStack>
               </TabPanel>
             </TabPanels>
           </Tabs>
