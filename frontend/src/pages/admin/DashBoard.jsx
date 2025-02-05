@@ -1,4 +1,3 @@
-// src/pages/admin/Dashboard.jsx
 import React from 'react';
 import {
   Box,
@@ -21,7 +20,6 @@ import {
 } from 'react-icons/fi';
 import AdminLayout from '../../components/admin/AdminLayout';
 
-// Dados mockados para teste
 const stats = [
   {
     label: 'Total de Vendas',
@@ -57,15 +55,15 @@ function StatCard({ label, value, change, icon, color }) {
   return (
     <Card>
       <CardBody>
-        <Flex justify="space-between" align="center">
-          <Box>
-            <StatLabel color="gray.500">{label}</StatLabel>
-            <StatNumber fontSize="2xl">{value}</StatNumber>
-            <StatHelpText color={change.startsWith('+') ? 'green.500' : 'red.500'}>
-              {change} em relação ao mês anterior
-            </StatHelpText>
+        <Flex alignItems="center">
+          <Box flex="1">
+            <Icon as={icon} w={8} h={8} color={color} />
+            <Stat>
+              <StatLabel>{label}</StatLabel>
+              <StatNumber>{value}</StatNumber>
+              <StatHelpText>{change} em relação ao mês anterior</StatHelpText>
+            </Stat>
           </Box>
-          <Icon as={icon} w={10} h={10} color={color} />
         </Flex>
       </CardBody>
     </Card>
@@ -75,17 +73,13 @@ function StatCard({ label, value, change, icon, color }) {
 function Dashboard() {
   return (
     <AdminLayout>
-      <Box>
+      <Box p={4}>
         <Heading size="lg" mb={6}>Dashboard</Heading>
-        
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
           {stats.map((stat, index) => (
             <StatCard key={index} {...stat} />
           ))}
         </SimpleGrid>
-
-        {/* Aqui você pode adicionar mais componentes como gráficos,
-            tabelas de pedidos recentes, etc. */}
       </Box>
     </AdminLayout>
   );

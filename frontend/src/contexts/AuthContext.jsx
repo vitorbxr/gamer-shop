@@ -5,93 +5,98 @@ import axios from 'axios';
 const AuthContext = createContext({});
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+ const [user, setUser] = useState(null);
+ const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Verificar se existe um token salvo
-    const token = localStorage.getItem('@GamerShop:token');
-    const savedUser = localStorage.getItem('@GamerShop:user');
+ useEffect(() => {
+   const token = localStorage.getItem('@GamerShop:token');
+   const savedUser = localStorage.getItem('@GamerShop:user');
 
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-    }
+   if (token && savedUser) {
+     setUser(JSON.parse(savedUser));
+     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+   }
 
-    setLoading(false);
-  }, []);
+   setLoading(false);
+ }, []);
 
-  const login = async (email, password) => {
-    try {
-      const response = await axios.post('http://localhost:3001/api/auth/login', {
-        email,
-        password
-      });
+ const register = async (name, email, password) => {
+   try {
+     const userData = {
+       id: Date.now(),
+       name,
+       email,
+       role: email === 'admin@test.com' ? 'ADMIN' : 'USER'
+     };
 
-      const { token, ...userData } = response.data;
+     const token = 'fake-jwt-token';
+     localStorage.setItem('@GamerShop:token', token);
+     localStorage.setItem('@GamerShop:user', JSON.stringify(userData));
+     setUser(userData);
+     
+     return { success: true };
+   } catch (error) {
+     return {
+       success: false,
+       error: error.response?.data?.message || 'Erro ao criar conta'
+     };
+   }
+ };
 
-      localStorage.setItem('@GamerShop:token', token);
-      localStorage.setItem('@GamerShop:user', JSON.stringify(userData));
-      
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
-      
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Erro ao fazer login'
-      };
-    }
-  };
+ const login = async (email, password) => {
+   console.log('Tentando login com:', email, password);
+   
+   try {
+     if (email === 'admin@test.com' && password === 'admin123') {
+       const userData = {
+         id: 1,
+         name: 'Administrador',
+         email,
+         role: 'ADMIN'
+       };
+       
+       const token = 'fake-jwt-token';
+       localStorage.setItem('@GamerShop:token', token);
+       localStorage.setItem('@GamerShop:user', JSON.stringify(userData));
+       setUser(userData);
+       
+       return { success: true };
+     }
+     
+     return {
+       success: false,
+       error: 'Email ou senha incorretos'
+     };
+   } catch (error) {
+     return {
+       success: false,
+       error: error.message || 'Erro ao fazer login'
+     };
+   }
+ };
 
-  const register = async (name, email, password) => {
-    try {
-      const response = await axios.post('http://localhost:3001/api/auth/register', {
-        name,
-        email,
-        password
-      });
+ const logout = () => {
+   localStorage.removeItem('@GamerShop:token');
+   localStorage.removeItem('@GamerShop:user');
+   delete axios.defaults.headers.common['Authorization'];
+   setUser(null);
+ };
 
-      const { token, ...userData } = response.data;
+ if (loading) {
+   return null;
+ }
 
-      localStorage.setItem('@GamerShop:token', token);
-      localStorage.setItem('@GamerShop:user', JSON.stringify(userData));
-      
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      setUser(userData);
-      
-      return { success: true };
-    } catch (error) {
-      return {
-        success: false,
-        error: error.response?.data?.message || 'Erro ao criar conta'
-      };
-    }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('@GamerShop:token');
-    localStorage.removeItem('@GamerShop:user');
-    delete axios.defaults.headers.common['Authorization'];
-    setUser(null);
-  };
-
-  if (loading) {
-    return null;
-  }
-
-  return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
-  );
+ return (
+   <AuthContext.Provider value={{ user, login, register, logout }}>
+     {children}
+   </AuthContext.Provider>
+ );
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth deve ser usado dentro de um AuthProvider');
-  }
-  return context;
+ const context = useContext(AuthContext);
+ if (!context) {
+   throw new Error('useAuth deve ser usado dentro de um AuthProvider');
+ }
+ return context;
 }

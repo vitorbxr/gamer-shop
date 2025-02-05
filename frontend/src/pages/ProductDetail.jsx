@@ -26,7 +26,7 @@ import {
   IconButton,
   Tooltip,
 } from '@chakra-ui/react';
-import { CheckIcon, InfoOutlineIcon, HeartIcon, HeartFilledIcon } from '@chakra-ui/icons';
+import { CheckIcon, InfoOutlineIcon, StarIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
 import { formatPrice } from '../utils/format.js';
 import { useCart } from '../contexts/CartContext';
@@ -179,7 +179,7 @@ return (
               label={isInWishlist(product.id) ? "Remover dos favoritos" : "Adicionar aos favoritos"}
             >
               <IconButton
-                icon={isInWishlist(product.id) ? <HeartFilledIcon /> : <HeartIcon />}
+                icon={isInWishlist(product.id) ? <StarIcon fill="red.500" /> : <StarIcon />}
                 colorScheme={isInWishlist(product.id) ? "red" : "gray"}
                 variant="ghost"
                 onClick={() => {

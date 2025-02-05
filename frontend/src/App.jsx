@@ -21,6 +21,8 @@ import Dashboard from './pages/admin/Dashboard'
 import Products from './pages/admin/Products'
 import Categories from './pages/admin/Categories'
 import Orders from './pages/admin/Orders'
+import Users from './pages/admin/Users'
+import Settings from './pages/admin/Settings' // Novo import
 
 function App() {
   return (
@@ -90,8 +92,8 @@ function App() {
                         <Route path="/products" element={<Products />} />
                         <Route path="/categories" element={<Categories />} />
                         <Route path="/orders" element={<Orders />} />
-                        <Route path="/users" element={<div>Usuários</div>} />
-                        <Route path="/settings" element={<div>Configurações</div>} />
+                        <Route path="/users" element={<Users />} />
+                        <Route path="/settings" element={<Settings />} />
                       </Routes>
                     </PrivateRoute>
                   } 

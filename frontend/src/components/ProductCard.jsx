@@ -12,7 +12,7 @@ import {
   Tooltip,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
-import { HeartIcon, HeartFilledIcon } from '@chakra-ui/icons';
+import { StarIcon } from '@chakra-ui/icons';
 import { formatPrice } from '../utils/format.js';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
@@ -62,7 +62,7 @@ function ProductCard({ product }) {
       {/* Botão de Favoritos */}
       <Tooltip label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}>
         <IconButton
-          icon={isFavorite ? <HeartFilledIcon /> : <HeartIcon />}
+          icon={isFavorite ? <StarIcon fill="red.500" /> : <StarIcon />}
           position="absolute"
           top={2}
           right={2}
