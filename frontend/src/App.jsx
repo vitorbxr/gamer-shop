@@ -20,6 +20,7 @@ import Wishlist from './pages/Wishlist'
 import Dashboard from './pages/admin/Dashboard'
 import Products from './pages/admin/Products'
 import Categories from './pages/admin/Categories'
+import Orders from './pages/admin/Orders'
 
 function App() {
   return (
@@ -88,7 +89,7 @@ function App() {
                         <Route path="/" element={<Dashboard />} />
                         <Route path="/products" element={<Products />} />
                         <Route path="/categories" element={<Categories />} />
-                        <Route path="/orders" element={<div>Pedidos</div>} />
+                        <Route path="/orders" element={<Orders />} />
                         <Route path="/users" element={<div>Usuários</div>} />
                         <Route path="/settings" element={<div>Configurações</div>} />
                       </Routes>
