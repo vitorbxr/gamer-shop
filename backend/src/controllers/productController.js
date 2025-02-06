@@ -1,11 +1,16 @@
 // backend/src/controllers/productController.js
 import { PrismaClient } from '@prisma/client';
 import { cacheService } from '../services/cacheService.js';
+import { imageService } from '../services/imageService.js';
 
 const prisma = new PrismaClient();
 
 const getCacheKey = (params) => {
   return `products:${JSON.stringify(params)}`;
+};
+
+const clearProductsCache = async () => {
+  await cacheService.clear();
 };
 const getAll = async (req, res) => {
     const params = {
@@ -22,7 +27,6 @@ const getAll = async (req, res) => {
     const cacheKey = getCacheKey(params);
   
     try {
-      // Tenta buscar do cache
       const cachedData = await cacheService.get(cacheKey);
       if (cachedData) {
         return res.json(JSON.parse(cachedData));
@@ -84,19 +88,12 @@ const getAll = async (req, res) => {
         }
       };
   
-      // Salva no cache
       await cacheService.set(cacheKey, JSON.stringify(result));
-  
       res.json(result);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   };
-  // Limpa o cache quando um produto é modificado
-const clearProductsCache = async () => {
-    await cacheService.clear();
-  };
-  
   const getById = async (req, res) => {
     const { id } = req.params;
     try {
@@ -126,11 +123,29 @@ const clearProductsCache = async () => {
     }
   };
   
+  const uploadImage = async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'Nenhuma imagem enviada' });
+      }
+  
+      const images = await imageService.processImage(req.file);
+      res.json(images);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
   const create = async (req, res) => {
     try {
+      let imageUrls = null;
+      if (req.file) {
+        imageUrls = await imageService.processImage(req.file);
+      }
+  
       const product = await prisma.product.create({
         data: {
           ...req.body,
+          image: imageUrls ? JSON.stringify(imageUrls) : null,
           specifications: req.body.specifications ? JSON.stringify(req.body.specifications) : null,
           features: req.body.features ? JSON.stringify(req.body.features) : null,
           categoryId: parseInt(req.body.categoryId),
@@ -145,16 +160,38 @@ const clearProductsCache = async () => {
       await clearProductsCache();
       res.status(201).json(product);
     } catch (error) {
+      if (req.file) {
+        try {
+          await imageService.deleteImages(req.file.path);
+        } catch (e) {
+          console.error('Erro ao remover imagem:', e);
+        }
+      }
       res.status(400).json({ error: error.message });
     }
   };
+  
   const update = async (req, res) => {
     const { id } = req.params;
     try {
+      let imageUrls = null;
+      const oldProduct = await prisma.product.findUnique({
+        where: { id: parseInt(id) }
+      });
+  
+      if (req.file) {
+        imageUrls = await imageService.processImage(req.file);
+        if (oldProduct.image) {
+          const oldImages = JSON.parse(oldProduct.image);
+          await imageService.deleteImages(Object.values(oldImages));
+        }
+      }
+  
       const product = await prisma.product.update({
         where: { id: parseInt(id) },
         data: {
           ...req.body,
+          image: imageUrls ? JSON.stringify(imageUrls) : undefined,
           specifications: req.body.specifications ? JSON.stringify(req.body.specifications) : undefined,
           features: req.body.features ? JSON.stringify(req.body.features) : undefined,
           categoryId: req.body.categoryId ? parseInt(req.body.categoryId) : undefined,
@@ -169,13 +206,28 @@ const clearProductsCache = async () => {
       await clearProductsCache();
       res.json(product);
     } catch (error) {
+      if (req.file) {
+        try {
+          await imageService.deleteImages(req.file.path);
+        } catch (e) {
+          console.error('Erro ao remover imagem:', e);
+        }
+      }
       res.status(400).json({ error: error.message });
     }
   };
-  
   const remove = async (req, res) => {
     const { id } = req.params;
     try {
+      const product = await prisma.product.findUnique({
+        where: { id: parseInt(id) }
+      });
+  
+      if (product.image) {
+        const images = JSON.parse(product.image);
+        await imageService.deleteImages(Object.values(images));
+      }
+  
       await prisma.product.delete({
         where: { id: parseInt(id) }
       });
@@ -241,5 +293,6 @@ const clearProductsCache = async () => {
     update,
     delete: remove,
     getCategories,
-    getBrands
+    getBrands,
+    uploadImage
   };
