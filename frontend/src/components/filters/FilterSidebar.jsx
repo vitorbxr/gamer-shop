@@ -1,8 +1,8 @@
-// src/components/filters/FilterSidebar.jsx
-import React from 'react';
+// frontend/src/components/filters/FilterSidebar.jsx
+import React, { useEffect, useState } from 'react';
 import {
-  VStack,
   Box,
+  VStack,
   Heading,
   Checkbox,
   RangeSlider,
@@ -10,150 +10,95 @@ import {
   RangeSliderFilledTrack,
   RangeSliderThumb,
   Text,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
-  AccordionIcon,
   Button,
 } from '@chakra-ui/react';
-import { formatPrice } from '../../utils/format.js';
+import { productService } from '../../services/productService';
 
-const categories = [
-  { id: 'mouse', name: 'Mouse' },
-  { id: 'keyboard', name: 'Teclado' },
-  { id: 'headset', name: 'Headset' },
-  { id: 'monitor', name: 'Monitor' },
-  { id: 'gpu', name: 'Placa de Vídeo' },
-  { id: 'cpu', name: 'Processador' },
-  { id: 'ram', name: 'Memória RAM' },
-  { id: 'storage', name: 'Armazenamento' }
-];
-
-const brands = [
-  'Razer',
-  'Logitech',
-  'Corsair',
-  'HyperX',
-  'ASUS',
-  'AMD',
-  'NVIDIA',
-  'Intel'
-];
-
-function FilterSidebar({
+function FilterSidebar({ 
   selectedCategories,
   selectedBrands,
   priceRange,
   onCategoryChange,
   onBrandChange,
   onPriceChange,
-  onClearFilters,
-  maxPrice = 5000
+  onClearFilters
 }) {
+  const [categories, setCategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+
+  useEffect(() => {
+    loadFilters();
+  }, []);
+
+  const loadFilters = async () => {
+    try {
+      const [categoriesData, brandsData] = await Promise.all([
+        productService.getCategories(),
+        productService.getBrands()
+      ]);
+      setCategories(categoriesData);
+      setBrands(brandsData);
+    } catch (error) {
+      console.error('Erro ao carregar filtros:', error);
+    }
+  };
+
   return (
-    <Box
-      p={4}
-      borderWidth="1px"
-      borderRadius="lg"
-      bg="white"
-    >
-      <VStack spacing={6} align="stretch">
+    <Box w="100%">
+      <VStack align="stretch" spacing={6}>
         <Box>
-          <Button
-            size="sm"
-            colorScheme="blue"
-            variant="outline"
-            width="100%"
-            onClick={onClearFilters}
-          >
-            Limpar Filtros
-          </Button>
+          <Heading size="sm" mb={4}>Categorias</Heading>
+          <VStack align="stretch">
+            {categories.map((category) => (
+              <Checkbox
+                key={category.id}
+                isChecked={selectedCategories.includes(category.id)}
+                onChange={(e) => onCategoryChange(category.id, e.target.checked)}
+              >
+                {category.name}
+              </Checkbox>
+            ))}
+          </VStack>
         </Box>
 
-        <Accordion defaultIndex={[0, 1, 2]} allowMultiple>
-          {/* Categorias */}
-          <AccordionItem>
-            <h2>
-              <AccordionButton>
-                <Box flex="1" textAlign="left" fontWeight="bold">
-                  Categorias
-                </Box>
-                <AccordionIcon />
-              </AccordionButton>
-            </h2>
-            <AccordionPanel>
-              <VStack align="start" spacing={2}>
-                {categories.map(category => (
-                  <Checkbox
-                    key={category.id}
-                    isChecked={selectedCategories.includes(category.id)}
-                    onChange={(e) => onCategoryChange(category.id, e.target.checked)}
-                  >
-                    {category.name}
-                  </Checkbox>
-                ))}
-              </VStack>
-            </AccordionPanel>
-          </AccordionItem>
+        <Box>
+          <Heading size="sm" mb={4}>Marcas</Heading>
+          <VStack align="stretch">
+            {brands.map((brand) => (
+              <Checkbox
+                key={brand.id}
+                isChecked={selectedBrands.includes(brand.id)}
+                onChange={(e) => onBrandChange(brand.id, e.target.checked)}
+              >
+                {brand.name}
+              </Checkbox>
+            ))}
+          </VStack>
+        </Box>
 
-          {/* Marcas */}
-          <AccordionItem>
-            <h2>
-              <AccordionButton>
-                <Box flex="1" textAlign="left" fontWeight="bold">
-                  Marcas
-                </Box>
-                <AccordionIcon />
-              </AccordionButton>
-            </h2>
-            <AccordionPanel>
-              <VStack align="start" spacing={2}>
-                {brands.map(brand => (
-                  <Checkbox
-                    key={brand}
-                    isChecked={selectedBrands.includes(brand)}
-                    onChange={(e) => onBrandChange(brand, e.target.checked)}
-                  >
-                    {brand}
-                  </Checkbox>
-                ))}
-              </VStack>
-            </AccordionPanel>
-          </AccordionItem>
+        <Box>
+          <Heading size="sm" mb={4}>Preço</Heading>
+          <RangeSlider
+            min={0}
+            max={5000}
+            step={100}
+            value={priceRange}
+            onChange={onPriceChange}
+          >
+            <RangeSliderTrack>
+              <RangeSliderFilledTrack />
+            </RangeSliderTrack>
+            <RangeSliderThumb index={0} />
+            <RangeSliderThumb index={1} />
+          </RangeSlider>
+          <Text mt={2}>
+            R$ {priceRange[0]} - R$ {priceRange[1]}
+          </Text>
+        </Box>
 
-          {/* Faixa de Preço */}
-          <AccordionItem>
-            <h2>
-              <AccordionButton>
-                <Box flex="1" textAlign="left" fontWeight="bold">
-                  Faixa de Preço
-                </Box>
-                <AccordionIcon />
-              </AccordionButton>
-            </h2>
-            <AccordionPanel>
-              <VStack align="stretch" spacing={4}>
-                <RangeSlider
-                  defaultValue={priceRange}
-                  min={0}
-                  max={maxPrice}
-                  step={100}
-                  onChange={onPriceChange}
-                >
-                  <RangeSliderTrack>
-                    <RangeSliderFilledTrack />
-                  </RangeSliderTrack>
-                  <RangeSliderThumb index={0} />
-                  <RangeSliderThumb index={1} />
-                </RangeSlider>
-                <Text>
-                  {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
-                </Text>
-              </VStack>
-            </AccordionPanel>
-          </AccordionItem>
-        </Accordion>
+        <Button onClick={onClearFilters} variant="outline">
+          Limpar Filtros
+        </Button>
       </VStack>
     </Box>
   );
