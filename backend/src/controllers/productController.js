@@ -3,64 +3,69 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export const productController = {
-  // Listar todos os produtos
   getAll: async (req, res) => {
+    const { page = 1, limit = 12, category, brand, minPrice, maxPrice, search, sort } = req.query;
+    const skip = (page - 1) * parseInt(limit);
+
     try {
-      const products = await prisma.product.findMany({
-        orderBy: {
-          createdAt: 'desc'
+      const where = {
+        isActive: true,
+        ...(category && { categoryId: parseInt(category) }),
+        ...(brand && { brandId: parseInt(brand) }),
+        ...(minPrice && { price: { gte: parseFloat(minPrice) } }),
+        ...(maxPrice && { price: { lte: parseFloat(maxPrice) } }),
+        ...(search && {
+          name: { contains: search, mode: 'insensitive' }
+        })
+      };
+
+      const orderBy = sort ? {
+        price: sort === 'price-asc' ? 'asc' : 'desc'
+      } : { createdAt: 'desc' };
+
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          skip,
+          take: parseInt(limit),
+          orderBy,
+          include: {
+            category: true,
+            brand: true
+          }
+        }),
+        prisma.product.count({ where })
+      ]);
+
+      res.json({
+        products,
+        pagination: {
+          total,
+          pages: Math.ceil(total / limit),
+          currentPage: parseInt(page),
+          limit: parseInt(limit)
         }
       });
-      res.json(products);
     } catch (error) {
       res.status(500).json({ error: error.message });
     }
   },
 
-  // Criar novo produto
-  create: async (req, res) => {
+  getCategories: async (req, res) => {
     try {
-      const product = await prisma.product.create({
-        data: {
-          ...req.body,
-          specifications: req.body.specifications ? JSON.stringify(req.body.specifications) : null,
-          features: req.body.features ? JSON.stringify(req.body.features) : null
-        }
-      });
-      res.status(201).json(product);
+      const categories = await prisma.category.findMany();
+      res.json(categories);
     } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   },
 
-  // Atualizar produto
-  update: async (req, res) => {
-    const { id } = req.params;
+  getBrands: async (req, res) => {
     try {
-      const product = await prisma.product.update({
-        where: { id: parseInt(id) },
-        data: {
-          ...req.body,
-          specifications: req.body.specifications ? JSON.stringify(req.body.specifications) : undefined,
-          features: req.body.features ? JSON.stringify(req.body.features) : undefined
-        }
-      });
-      res.json(product);
+      const brands = await prisma.brand.findMany();
+      res.json(brands);
     } catch (error) {
-      res.status(400).json({ error: error.message });
-    }
-  },
-
-  // Excluir produto
-  delete: async (req, res) => {
-    const { id } = req.params;
-    try {
-      await prisma.product.delete({
-        where: { id: parseInt(id) }
-      });
-      res.status(204).send();
-    } catch (error) {
-      res.status(400).json({ error: error.message });
+      res.status(500).json({ error: error.message });
     }
   }
 };
