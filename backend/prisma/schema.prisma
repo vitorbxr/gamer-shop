@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -20,4 +21,20 @@ model User {
 enum Role {
   USER
   ADMIN
+}
+
+model Product {
+  id             Int      @id @default(autoincrement())
+  name           String
+  price          Float
+  category       String
+  brand          String
+  stock          Int      @default(0)
+  image          String?
+  isActive       Boolean  @default(true)
+  description    String   @db.Text
+  specifications Json?    // Armazenará o array de especificações
+  features       Json?    // Armazenará o array de features
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }
