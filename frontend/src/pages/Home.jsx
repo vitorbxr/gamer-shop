@@ -1,53 +1,37 @@
 // src/pages/Home.jsx
-import React from 'react';
-import { Box, Container, Heading, SimpleGrid, Text } from '@chakra-ui/react';
+import React, { useState, useEffect } from 'react';
+import { Box, Container, Heading, SimpleGrid, Text, Spinner } from '@chakra-ui/react';
 import ProductCard from '../components/ProductCard';
+import { productService } from '../services/productService';
 
 function Home() {
-  // Dados mockados para produtos em destaque
-  const featuredProducts = [
-    {
-      id: 1,
-      name: "Mouse Gamer RGB",
-      price: 199.99,
-      image: "/placeholder-product.jpg",
-      isNew: true,
-      inStock: true
-    },
-    {
-      id: 2,
-      name: "Teclado Mecânico",
-      price: 299.99,
-      image: "/placeholder-product.jpg",
-      isNew: false,
-      inStock: true
-    },
-    {
-      id: 3,
-      name: "Headset 7.1",
-      price: 259.99,
-      image: "/placeholder-product.jpg",
-      isNew: true,
-      inStock: true
-    },
-    {
-      id: 4,
-      name: "Mousepad XL",
-      price: 89.99,
-      image: "/placeholder-product.jpg",
-      isNew: false,
-      inStock: true
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    loadFeaturedProducts();
+  }, []);
+
+  const loadFeaturedProducts = async () => {
+    try {
+      setIsLoading(true);
+      const data = await productService.getFeatured();
+      setFeaturedProducts(data);
+    } catch (error) {
+      console.error('Erro ao carregar produtos:', error);
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
 
   return (
     <Box>
       {/* Banner Principal */}
-      <Box 
-        bg="brand.background" 
-        h="400px" 
-        display="flex" 
-        alignItems="center" 
+      <Box
+        bg="brand.background"
+        h="400px"
+        display="flex"
+        alignItems="center"
         justifyContent="center"
         mb={8}
       >
@@ -61,11 +45,17 @@ function Home() {
         <Heading size="lg" mb={6} color="brand.text">
           Produtos em Destaque
         </Heading>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
-          {featuredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </SimpleGrid>
+        {isLoading ? (
+          <Box display="flex" justifyContent="center" py={10}>
+            <Spinner size="xl" />
+          </Box>
+        ) : (
+          <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6}>
+            {featuredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </SimpleGrid>
+        )}
       </Container>
     </Box>
   );
