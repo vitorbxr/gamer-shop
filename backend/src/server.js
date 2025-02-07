@@ -6,6 +6,7 @@ import path from 'path';
 import { requestLogger, errorLogger, securityLogger } from './middleware/logMiddleware.js';
 import { setupLogRotation } from './utils/logRotation.js';
 import { logService } from './services/logService.js';
+import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 
@@ -45,8 +46,9 @@ app.use((req, res) => {
  res.status(404).json({ error: 'Rota não encontrada' });
 });
 
-// Middleware de erro (deve ser o último)
+// Middlewares de erro
 app.use(errorLogger);
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
@@ -83,3 +85,5 @@ process.on('SIGINT', () => {
  logService.info('Servidor interrompido pelo usuário');
  process.exit(0);
 });
+
+export default app;
