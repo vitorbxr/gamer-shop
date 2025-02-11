@@ -103,7 +103,7 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
       setErrors(newErrors);
       return;
     }
-
+  
     setIsSubmitting(true);
     
     try {
@@ -114,15 +114,8 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
           formDataToSend.append(key, String(formData[key]));
         }
       });
-
+  
       await onSave(formDataToSend);
-      
-      toast({
-        title: `Produto ${product ? 'atualizado' : 'criado'} com sucesso!`,
-        status: 'success',
-        duration: 3000,
-      });
-      
       onClose();
     } catch (error) {
       toast({
