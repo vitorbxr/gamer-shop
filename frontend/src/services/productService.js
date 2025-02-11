@@ -6,15 +6,26 @@ export const productService = {
       const response = await api.get('/products', {
         params: { page, limit }
       });
-      // Garantimos que sempre retornamos um array de produtos
       return {
         products: response.data.products || [],
-        pagination: response.data.pagination || { total: 0, pages: 1 }
+        pagination: response.data.pagination || { 
+          total: 0, 
+          pages: 1,
+          currentPage: 1,
+          perPage: limit
+        }
       };
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
-      // Em caso de erro, retornamos um array vazio
-      return { products: [], pagination: { total: 0, pages: 1 } };
+      return { 
+        products: [], 
+        pagination: { 
+          total: 0, 
+          pages: 1,
+          currentPage: 1,
+          perPage: limit
+        } 
+      };
     }
   },
 
@@ -70,7 +81,7 @@ export const productService = {
     }
   },
 
-  deleteProduct: async (id) => {
+  delete: async (id) => {
     try {
       await api.delete(`/products/${id}`);
     } catch (error) {

@@ -1,4 +1,3 @@
-// src/pages/admin/Products.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -52,6 +51,7 @@ function Products() {
   const [pagination, setPagination] = useState({ total: 0, pages: 1 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
   
   // Estados para controle da interface
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,14 +74,14 @@ function Products() {
   // Carrega os produtos quando o componente é montado
   useEffect(() => {
     loadProducts();
-  }, []);
+  }, [currentPage]);
 
   // Função principal para carregar produtos da API
   const loadProducts = async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const data = await productService.getAll();
+      const data = await productService.getAll(currentPage);
       
       // Garantimos que products seja sempre um array
       setProducts(Array.isArray(data.products) ? data.products : []);
@@ -233,6 +233,12 @@ function Products() {
           <Box display="flex" justifyContent="center" py={10}>
             <Spinner size="xl" />
           </Box>
+        ) : filteredProducts.length === 0 ? (
+          <Box textAlign="center" py={10}>
+            <Text fontSize="lg" color="gray.500">
+              Nenhum produto encontrado
+            </Text>
+          </Box>
         ) : (
           <Box overflowX="auto">
             <Table variant="simple">
@@ -319,6 +325,74 @@ function Products() {
                 ))}
               </Tbody>
             </Table>
+            {/* Paginação */}
+            {pagination.pages > 1 && (
+              <HStack spacing={2} justify="center" mt={6}>
+                <Button
+                  size="sm"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                >
+                  Primeira
+                </Button>
+                
+                <Button
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Anterior
+                </Button>
+
+                {/* Números das páginas */}
+                <HStack spacing={2}>
+                  {[...Array(pagination.pages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    // Mostra apenas 5 páginas ao redor da página atual
+                    if (
+                      pageNumber === 1 ||
+                      pageNumber === pagination.pages ||
+                      (pageNumber >= currentPage - 2 && pageNumber <= currentPage + 2)
+                    ) {
+                      return (
+                        <Button
+                          key={pageNumber}
+                          size="sm"
+                          colorScheme={currentPage === pageNumber ? "blue" : "gray"}
+                          onClick={() => setCurrentPage(pageNumber)}
+                        >
+                          {pageNumber}
+                        </Button>
+                      );
+                    }
+                    // Adiciona reticências para páginas omitidas
+                    if (
+                      pageNumber === currentPage - 3 ||
+                      pageNumber === currentPage + 3
+                    ) {
+                      return <Text key={pageNumber}>...</Text>;
+                    }
+                    return null;
+                  })}
+                </HStack>
+
+                <Button
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.pages))}
+                  disabled={currentPage === pagination.pages}
+                >
+                  Próxima
+                </Button>
+                
+                <Button
+                  size="sm"
+                  onClick={() => setCurrentPage(pagination.pages)}
+                  disabled={currentPage === pagination.pages}
+                >
+                  Última
+                </Button>
+              </HStack>
+            )}
           </Box>
         )}
 
