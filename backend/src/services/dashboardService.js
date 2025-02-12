@@ -8,7 +8,6 @@ export const dashboardService = {
       const startOfDay = new Date(today.setHours(0, 0, 0, 0));
       const endOfDay = new Date(today.setHours(23, 59, 59, 999));
       
-      // Buscar todas as métricas em paralelo
       const [totalOrders, todayOrders, totalProducts, lowStockProducts] = await Promise.all([
         prisma.order.count(),
         prisma.order.count({
@@ -29,7 +28,6 @@ export const dashboardService = {
         })
       ]);
 
-      // Calcular valor total de vendas
       const salesData = await prisma.order.aggregate({
         _sum: {
           totalAmount: true
@@ -67,7 +65,6 @@ export const dashboardService = {
         take: 5
       });
 
-      // Buscar os detalhes dos produtos
       const productsWithDetails = await Promise.all(
         topProducts.map(async (item) => {
           const product = await prisma.product.findUnique({
@@ -98,7 +95,7 @@ export const dashboardService = {
           createdAt: {
             gte: thirtyDaysAgo
           },
-          status: 'delivered' // Considerar apenas pedidos entregues
+          status: 'delivered'
         },
         select: {
           createdAt: true,
@@ -109,9 +106,8 @@ export const dashboardService = {
         }
       });
 
-      // Agrupar vendas por dia
       const salesByDay = sales.reduce((acc, sale) => {
-        const date = sale.createdAt.toISOString().split('T')[0];
+        const date = sale.createdAt.toISOString().split('T')[0]; // Formato YYYY-MM-DD
         if (!acc[date]) {
           acc[date] = {
             date,
@@ -122,12 +118,60 @@ export const dashboardService = {
         return acc;
       }, {});
 
-      // Converter para array e ordenar por data
-      return Object.values(salesByDay).sort((a, b) => 
-        new Date(a.date) - new Date(b.date)
-      );
+      // Preencher dias sem vendas com zero
+      const allDays = [];
+      const currentDate = new Date(thirtyDaysAgo);
+      const today = new Date();
+
+      while (currentDate <= today) {
+        const dateStr = currentDate.toISOString().split('T')[0];
+        if (!salesByDay[dateStr]) {
+          salesByDay[dateStr] = {
+            date: dateStr,
+            totalAmount: 0
+          };
+        }
+        allDays.push(salesByDay[dateStr]);
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+
+      return allDays.sort((a, b) => new Date(a.date) - new Date(b.date));
     } catch (error) {
       console.error('Erro no getSalesByPeriod:', error);
+      throw error;
+    }
+  },
+
+  async getOrderStatus() {
+    try {
+      const ordersByStatus = await prisma.order.groupBy({
+        by: ['status'],
+        _count: {
+          id: true
+        }
+      });
+
+      const statusLabels = {
+        'pending': 'Pendente',
+        'processing': 'Processando',
+        'shipped': 'Enviado',
+        'delivered': 'Entregue',
+        'cancelled': 'Cancelado'
+      };
+
+      return ordersByStatus.map(status => ({
+        status: statusLabels[status.status] || status.status,
+        count: status._count.id,
+        color: {
+          'pending': '#ECC94B',
+          'processing': '#4299E1',
+          'shipped': '#9F7AEA',
+          'delivered': '#48BB78',
+          'cancelled': '#F56565'
+        }[status.status]
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar status dos pedidos:', error);
       throw error;
     }
   }

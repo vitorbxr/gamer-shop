@@ -30,5 +30,15 @@ export const dashboardController = {
       console.error('Erro no getSalesByPeriod:', error);
       res.status(500).json({ error: error.message });
     }
+  },
+
+  async getOrderStatus(req, res) {
+    try {
+      const orderStatus = await dashboardService.getOrderStatus();
+      res.json(orderStatus);
+    } catch (error) {
+      console.error('Erro ao buscar status dos pedidos:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 };

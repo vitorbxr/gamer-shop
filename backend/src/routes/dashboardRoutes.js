@@ -8,5 +8,6 @@ const router = express.Router();
 router.get('/overview', auth, dashboardController.getOverview);
 router.get('/top-products', auth, dashboardController.getTopProducts);
 router.get('/sales-by-period', auth, dashboardController.getSalesByPeriod);
+router.get('/order-status', auth, dashboardController.getOrderStatus);
 
 export default router;
