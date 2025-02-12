@@ -8,49 +8,97 @@ datasource db {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
   password  String
   name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  role      Role     @default(USER)
-}
-
-enum Role {
-  USER
-  ADMIN
-}
-
-model Category {
-  id       Int       @id @default(autoincrement())
-  name     String
-  products Product[]
-}
-
-model Brand {
-  id       Int       @id @default(autoincrement())
-  name     String
-  products Product[]
+  role      String    @default("USER")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  orders    Order[]   
 }
 
 model Product {
-  id             Int      @id @default(autoincrement())
-  name           String
-  price          Float
-  stock          Int      @default(0)
-  image          String?
-  thumbnailUrl   String?
-  mediumImageUrl String?
-  largeImageUrl  String?
-  isActive       Boolean  @default(true)
-  description    String   @db.Text
-  specifications String?  @db.Text
-  features       String?  @db.Text
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-  categoryId     Int
-  category       Category @relation(fields: [categoryId], references: [id])
-  brandId        Int
-  brand          Brand    @relation(fields: [brandId], references: [id])
+  id              Int         @id @default(autoincrement())
+  name            String
+  description     String?     @db.Text
+  price           Float
+  stock           Int         @default(0)
+  isActive        Boolean     @default(true)
+  image           String?
+  specifications  String?     @db.Text
+  features        String?     @db.Text
+  categoryId      Int?
+  brandId         Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  category        Category?   @relation(fields: [categoryId], references: [id])
+  brand           Brand?      @relation(fields: [brandId], references: [id])
+  orderItems      OrderItem[] 
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  products  Product[]
+}
+
+model Brand {
+  id        Int       @id @default(autoincrement())
+  name      String
+  products  Product[]
+}
+
+model Order {
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  status      String      @default("pending")
+  totalAmount Float
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id])
+  items       OrderItem[]
+  payment     Payment?
+  shipping    Shipping?
+}
+
+model OrderItem {
+  id        Int      @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+  price     Float
+
+  order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  orderId       Int      @unique
+  method        String
+  status        String
+  amount        Float
+  installments  Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order         Order    @relation(fields: [orderId], references: [id])
+}
+
+model Shipping {
+  id            Int      @id @default(autoincrement())
+  orderId       Int      @unique
+  address       String
+  city          String
+  state         String
+  zipCode       String
+  status        String
+  trackingCode  String?
+  cost          Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  order         Order    @relation(fields: [orderId], references: [id])
 }

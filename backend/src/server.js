@@ -12,6 +12,7 @@ import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
+import dashboardRoutes from './routes/dashboardRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -42,6 +43,7 @@ app.use((req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
+app.use('/api/dashboard', dashboardRoutes);
 
 // Handler para rotas não encontradas
 app.use((req, res) => {
@@ -55,6 +57,10 @@ app.use((req, res) => {
 
 // Middlewares de erro
 app.use(errorLogger);
+app.use((err, req, res, next) => {
+  console.error('Erro detalhado:', err);
+  next(err);
+});
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
