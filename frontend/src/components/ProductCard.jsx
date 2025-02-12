@@ -16,6 +16,7 @@ import { StarIcon } from '@chakra-ui/icons';
 import { formatPrice } from '../utils/format.js';
 import { useCart } from '../contexts/CartContext';
 import { useWishlist } from '../contexts/WishlistContext';
+import { getImageUrl } from '../utils/imageUrl';
 
 function ProductCard({ product }) {
   const { addToCart } = useCart();
@@ -74,13 +75,24 @@ function ProductCard({ product }) {
         />
       </Tooltip>
 
-      <Image
-        src={product.image}
-        alt={product.name}
-        height="200px"
-        width="100%"
-        objectFit="cover"
-      />
+      <Box position="relative" height="200px"> {/* Container com altura fixa */}
+        <Image
+          src={getImageUrl(product.image)}
+          alt={product.name}
+          width="100%"
+          height="100%"
+          objectFit="contain" // Isso fará a imagem caber inteira sem cortar
+          fallback={
+            <Image
+              src="/placeholder-product.png"
+              alt="Placeholder"
+              width="100%"
+              height="100%"
+              objectFit="contain"
+            />
+          }
+        />
+      </Box>
 
       <Box p="6">
         <HStack spacing={2} mb={2}>

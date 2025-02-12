@@ -24,6 +24,7 @@ import Orders from './pages/admin/Orders'
 import Users from './pages/admin/Users'
 import Settings from './pages/admin/Settings' // Novo import
 
+
 function App() {
   return (
     <AuthProvider>

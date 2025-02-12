@@ -8,7 +8,6 @@ export const imageService = {
     const filename = file.filename;
     const uploadPath = path.resolve('./uploads/products');
     
-    // Gera diferentes tamanhos da imagem
     try {
       // Thumbnail (200x200)
       await sharp(file.path)
@@ -31,10 +30,11 @@ export const imageService = {
       // Remove o arquivo original
       await fs.unlink(file.path);
 
+      // Retorna os caminhos relativos
       return {
-        thumbnail: `/products/thumb_${filename}.webp`,
-        medium: `/products/medium_${filename}.webp`,
-        large: `/products/large_${filename}.webp`
+        thumbnail: `/uploads/products/thumb_${filename}.webp`,
+        medium: `/uploads/products/medium_${filename}.webp`,
+        large: `/uploads/products/large_${filename}.webp`
       };
     } catch (error) {
       // Em caso de erro, tenta remover os arquivos que podem ter sido criados

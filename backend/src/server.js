@@ -11,6 +11,7 @@ import { logService } from './services/logService.js';
 import { errorHandler } from './middleware/errorMiddleware.js';
 import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
+import imageRoutes from './routes/imageRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 // Rotas
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/images', imageRoutes);
 
 // Handler para rotas não encontradas
 app.use((req, res) => {

@@ -1,11 +1,12 @@
 // src/services/api.js
 import axios from 'axios';
 import { authService } from './authService';
+import { API_URL } from '../config/api.config';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
-  timeout: 10000
+  baseURL: `${API_URL}/api`
 });
+
 
 // Interceptor para adicionar o token
 api.interceptors.request.use((config) => {

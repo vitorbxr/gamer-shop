@@ -1,11 +1,16 @@
+// src/components/admin/ProductFormModal.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Modal, ModalOverlay, ModalContent, ModalHeader, ModalFooter,
   ModalBody, ModalCloseButton, Button, FormControl, FormLabel,
-  Input, Select, Textarea, VStack, SimpleGrid, NumberInput,
-  NumberInputField, NumberInputStepper, NumberIncrementStepper,
-  NumberDecrementStepper, Switch, FormHelperText, useToast, Text
+  Input, Select, Textarea, VStack, Box, Text, SimpleGrid, 
+  NumberInput, NumberInputField, NumberInputStepper, 
+  NumberIncrementStepper, NumberDecrementStepper, Switch, 
+  FormHelperText, useToast
 } from '@chakra-ui/react';
+import ImageUpload from '../../components/ImageUpload';
+import api from '../../services/api';
+import { getImageUrl } from "../../utils/imageUrl";
 
 const categories = [
   { id: 1, name: 'Mouse' }, { id: 2, name: 'Teclado' },
@@ -65,6 +70,31 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const handleImageChange = async (file) => {
+    try {
+      if (file) {
+        const formData = new FormData();
+        formData.append('image', file);
+        const response = await api.post('/images/upload', formData);
+        
+        const imageUrl = response.data.urls.medium;
+        console.log('URL da imagem:', imageUrl);
+        
+        handleChange({
+          target: {
+            name: 'image',
+            value: imageUrl
+          }
+        });
+        return getImageUrl(imageUrl);
+      } else {
+        // ...
+      }
+    } catch (error) {
+      // ...
     }
   };
 
@@ -149,6 +179,15 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
 
           <ModalBody pb={6}>
             <VStack spacing={4} align="stretch">
+              {/* Campo de Imagem */}
+              <Box>
+                <Text fontWeight="bold" mb={2}>Imagem do Produto</Text>
+                <ImageUpload
+                  initialImage={formData.image}
+                  onImageChange={handleImageChange}
+                />
+              </Box>
+
               <SimpleGrid columns={2} spacing={4} width="full">
                 {renderField(
                   'Nome',
@@ -258,17 +297,6 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
                   </FormHelperText>
                 </FormControl>
               </SimpleGrid>
-
-              {renderField(
-                'URL da Imagem',
-                'image',
-                <Input
-                  name="image"
-                  value={formData.image || ''}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                />
-              )}
 
               {renderField(
                 'Especificações',

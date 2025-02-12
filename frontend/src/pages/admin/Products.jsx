@@ -44,6 +44,7 @@ import AdminLayout from '../../components/admin/AdminLayout';
 import ProductFormModal from '../../components/admin/ProductFormModal';
 import { productService } from '../../services/productService';
 import { formatPrice } from '../../utils/format';
+import { getImageUrl } from '../../utils/imageUrl';
 
 function Products() {
   // Estados principais para controle dos produtos
@@ -258,13 +259,22 @@ function Products() {
                   <Tr key={product.id}>
                     <Td>
                       <HStack>
-                        <Image
-                          src={product.image || "/placeholder-image.jpg"}
-                          alt={product.name}
-                          boxSize="40px"
-                          objectFit="cover"
-                          borderRadius="md"
-                        />
+                      <Image
+                        src={getImageUrl(product.image) || "/placeholder-product.png"}
+                        alt={product.name}
+                        boxSize="40px"
+                        objectFit="cover"
+                        borderRadius="md"
+                        fallback={
+                          <Image
+                            src="/placeholder-product.png"
+                            alt="Placeholder"
+                            boxSize="40px"
+                            objectFit="cover"
+                            borderRadius="md"
+                          />
+                        }
+                      />
                         <Box>
                           <Text fontWeight="medium">{product.name}</Text>
                           <Text fontSize="sm" color="gray.500">
