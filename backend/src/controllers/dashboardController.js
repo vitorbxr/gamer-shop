@@ -69,5 +69,15 @@ export const dashboardController = {
       console.error('Erro ao buscar produtos com estoque baixo:', error);
       res.status(500).json({ error: error.message });
     }
+  },
+
+  async getPaymentMetrics(req, res) {
+    try {
+      const metrics = await dashboardService.getPaymentMetrics();
+      res.json(metrics);
+    } catch (error) {
+      console.error('Erro ao buscar métricas de pagamento:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 };

@@ -261,5 +261,71 @@ export const dashboardService = {
       console.error('Erro ao buscar produtos com estoque baixo:', error);
       throw error;
     }
+  },
+
+  async getPaymentMetrics() {
+    try {
+      // Métricas por método de pagamento
+      const paymentsByMethod = await prisma.payment.groupBy({
+        by: ['method'],
+        _count: {
+          id: true
+        },
+        _sum: {
+          amount: true
+        }
+      });
+  
+      // Métricas de status de pagamento
+      const paymentsByStatus = await prisma.payment.groupBy({
+        by: ['status'],
+        _count: {
+          id: true
+        },
+        _sum: {
+          amount: true
+        }
+      });
+  
+      const methodLabels = {
+        'credit': 'Cartão de Crédito',
+        'debit': 'Cartão de Débito',
+        'pix': 'PIX',
+        'boleto': 'Boleto'
+      };
+  
+      const statusLabels = {
+        'pending': 'Pendente',
+        'paid': 'Pago',
+        'failed': 'Falhou',
+        'refunded': 'Reembolsado'
+      };
+  
+      const statusColors = {
+        'pending': '#ECC94B',  // yellow
+        'paid': '#48BB78',     // green
+        'failed': '#F56565',   // red
+        'refunded': '#9F7AEA'  // purple
+      };
+  
+      return {
+        byMethod: paymentsByMethod.map(item => ({
+          name: methodLabels[item.method] || item.method,
+          count: item._count.id,
+          total: item._sum.amount,
+          method: item.method
+        })),
+        byStatus: paymentsByStatus.map(item => ({
+          name: statusLabels[item.status] || item.status,
+          count: item._count.id,
+          total: item._sum.amount,
+          status: item.status,
+          color: statusColors[item.status]
+        }))
+      };
+    } catch (error) {
+      console.error('Erro ao buscar métricas de pagamento:', error);
+      throw error;
+    }
   }
 };

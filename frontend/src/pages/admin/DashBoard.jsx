@@ -35,6 +35,7 @@ import {
 } from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
 import StockAlerts from '../../components/admin/StockAlerts';
+import PaymentMetrics from '../../components/admin/PaymentMetrics';
 import { formatPrice } from '../../utils/format';
 import api from '../../services/api';
 
@@ -46,6 +47,7 @@ function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [categoryData, setCategoryData] = useState([]);
   const [lowStockProducts, setLowStockProducts] = useState([]);
+  const [paymentMetrics, setPaymentMetrics] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -70,6 +72,9 @@ function Dashboard() {
         api.get('/dashboard/sales-by-category'),
         api.get('/dashboard/low-stock')
       ]);
+
+      const paymentMetricsData = await api.get('/dashboard/payment-metrics');
+      setPaymentMetrics(paymentMetricsData.data);
   
       setOverview(overviewData.data);
       setTopProducts(topProductsData.data);
@@ -272,6 +277,15 @@ function Dashboard() {
                   ))}
                 </Tbody>
               </Table>
+            </CardBody>
+          </Card>
+
+          <Card gridColumn={{ base: 'auto', lg: 'span 2' }}>
+            <CardHeader>
+              <Heading size="md">Métricas de Pagamento</Heading>
+            </CardHeader>
+            <CardBody>
+              <PaymentMetrics data={paymentMetrics} />
             </CardBody>
           </Card>
         </SimpleGrid>
