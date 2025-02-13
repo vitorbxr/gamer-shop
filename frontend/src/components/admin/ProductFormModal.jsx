@@ -139,13 +139,35 @@ function ProductFormModal({ isOpen, onClose, product = null, onSave }) {
     try {
       const formDataToSend = new FormData();
       
+      // Adiciona todos os campos do formulário
       Object.keys(formData).forEach(key => {
         if (formData[key] !== null && formData[key] !== undefined) {
           formDataToSend.append(key, String(formData[key]));
         }
       });
   
+      // Calcula e adiciona o inStock baseado no stock
+      const stockValue = parseInt(formData.stock);
+      const inStock = !isNaN(stockValue) && stockValue > 0;
+      formDataToSend.append('inStock', String(inStock));
+  
+      // Garante que o stock seja um número
+      formDataToSend.set('stock', String(stockValue || 0));
+  
+      // Se for edição, inclui o ID
+      if (product?.id) {
+        formDataToSend.append('id', product.id);
+      }
+  
+      // Adiciona o status ativo/inativo
+      formDataToSend.append('isActive', String(formData.isActive));
+  
       await onSave(formDataToSend);
+      toast({
+        title: `Produto ${product ? 'atualizado' : 'criado'} com sucesso`,
+        status: 'success',
+        duration: 2000,
+      });
       onClose();
     } catch (error) {
       toast({

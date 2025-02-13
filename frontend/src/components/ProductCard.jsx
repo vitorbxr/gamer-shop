@@ -99,8 +99,8 @@ function ProductCard({ product }) {
           {product.isNew && (
             <Badge colorScheme="green">Novo</Badge>
           )}
-          {product.inStock ? (
-            <Badge colorScheme="blue">Em Estoque</Badge>
+          {product.stock > 0 ? (
+            <Badge colorScheme="blue">Em Estoque ({product.stock})</Badge>
           ) : (
             <Badge colorScheme="red">Fora de Estoque</Badge>
           )}
@@ -127,7 +127,7 @@ function ProductCard({ product }) {
           <Button
             width="full"
             colorScheme="blue"
-            isDisabled={!product.inStock}
+            isDisabled={!(product.stock > 0)}
             onClick={handleAddToCart}
           >
             Adicionar ao Carrinho

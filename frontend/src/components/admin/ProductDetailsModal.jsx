@@ -46,7 +46,7 @@ function ProductDetailsModal({ isOpen, onClose, product }) {
                     {product.isActive ? "Ativo" : "Inativo"}
                   </Badge>
                   <Badge colorScheme={product.stock > 0 ? "blue" : "orange"}>
-                    {product.stock > 0 ? "Em Estoque" : "Sem Estoque"}
+                    {product.stock > 0 ? `Em Estoque (${product.stock} un.)` : "Sem Estoque"}
                   </Badge>
                 </HStack>
                 <Text fontSize="2xl" color="blue.600" mt={2}>

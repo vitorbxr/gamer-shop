@@ -1,3 +1,4 @@
+// src/pages/ProductDetail.jsx
 import React, { useState } from 'react';
 import {
   Box,
@@ -21,6 +22,10 @@ import {
   Divider,
   IconButton,
   Tooltip,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon
 } from '@chakra-ui/react';
 import { StarIcon } from '@chakra-ui/icons';
 import { useParams } from 'react-router-dom';
@@ -31,31 +36,15 @@ import Rating from '../components/ratings/Rating';
 import RatingsList from '../components/ratings/RatingsList';
 import RatingForm from '../components/ratings/RatingForm';
 import TextToList from '../components/TextToList';
-
-// Dados mockados de avaliações para teste
-const mockReviews = [
-  {
-    id: 1,
-    userId: 1,
-    userName: "João Silva",
-    rating: 5,
-    comment: "Excelente produto! Superou minhas expectativas.",
-    date: "2024-02-01T10:00:00Z"
-  },
-  {
-    id: 2,
-    userId: 2,
-    userName: "Maria Santos",
-    rating: 4,
-    comment: "Muito bom, mas poderia ser um pouco mais barato.",
-    date: "2024-01-28T15:30:00Z"
-  }
-];
+import { useProduct } from '../hooks/useProduct';
+import { getImageUrl } from '../utils/imageUrl';
 
 function ProductDetail() {
   const { id } = useParams();
+  const { product, loading, error } = useProduct(id);
+  console.log('Produto carregado:', product); // Adicione este log
   const [selectedImage, setSelectedImage] = useState(0);
-  const [reviews, setReviews] = useState(mockReviews);
+  const [reviews, setReviews] = useState([]);
   const toast = useToast();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -65,33 +54,33 @@ function ProductDetail() {
       step: 1,
       defaultValue: 1,
       min: 1,
-      max: 20,
+      max: product?.stock || 20,
     });
 
   const inc = getIncrementButtonProps();
   const dec = getDecrementButtonProps();
   const input = getInputProps();
 
-  // Dados mockados do produto
-  const product = {
-    id: parseInt(id),
-    name: "Mouse Gamer RGB Pro X",
-    price: 1299.99,
-    description: "Mouse gamer profissional com sensor óptico de alta precisão, iluminação RGB personalizável e design ergonômico para máximo desempenho em jogos.",
-    images: [
-      "/placeholder-image.jpg",
-      "/placeholder-image.jpg",
-      "/placeholder-image.jpg"
-    ],
-    specifications: "Sensor óptico de 16.000 DPI\nBotões programáveis\nSwitch mecânico durável\nMemória integrada para perfis\nPeso ajustável",
-    features: "RGB Chroma com 16.8 milhões de cores\nPolling rate de 1000Hz\nCabo trançado de 2.1m\nCompatível com software de personalização",
-    inStock: true,
-    stockQuantity: 15,
-    isNew: true,
-    warranty: "12 meses de garantia",
-    averageRating: 4.5,
-    totalRatings: reviews.length
-  };
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error || !product) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          Erro ao carregar produto
+        </Alert>
+      </Container>
+    );
+  }
 
   const handleAddToCart = () => {
     const quantity = parseInt(value);
@@ -105,12 +94,12 @@ function ProductDetail() {
   };
 
   const handleRatingSubmit = async (newReview) => {
-    // Aqui você faria a chamada para a API
-    // Por enquanto, apenas adicionamos ao estado local
     setReviews(prev => [...prev, { ...newReview, id: prev.length + 1 }]);
   };
 
-  const averageRating = reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length;
+  const averageRating = reviews.length > 0 
+    ? reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length 
+    : 0;
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -125,47 +114,51 @@ function ProductDetail() {
             borderColor="gray.200"
           >
             <Image
-              src={product.images[selectedImage]}
+              src={getImageUrl(product.image)}
               alt={product.name}
               width="100%"
               height="400px"
-              objectFit="cover"
+              objectFit="contain"
+              fallback={<Image src="/placeholder-product.png" alt="Placeholder" />}
             />
           </Box>
-          <HStack spacing={4}>
-            {product.images.map((image, index) => (
-              <Box
-                key={index}
-                borderWidth="2px"
-                borderRadius="md"
-                borderColor={selectedImage === index ? "blue.500" : "gray.200"}
-                overflow="hidden"
-                cursor="pointer"
-                onClick={() => setSelectedImage(index)}
-              >
-                <Image
-                  src={image}
-                  alt={`${product.name} - imagem ${index + 1}`}
-                  width="80px"
-                  height="80px"
-                  objectFit="cover"
-                />
-              </Box>
-            ))}
-          </HStack>
+          {product.images && product.images.length > 0 && (
+            <HStack spacing={4}>
+              {product.images.map((image, index) => (
+                <Box
+                  key={index}
+                  borderWidth="2px"
+                  borderRadius="md"
+                  borderColor={selectedImage === index ? "blue.500" : "gray.200"}
+                  overflow="hidden"
+                  cursor="pointer"
+                  onClick={() => setSelectedImage(index)}
+                >
+                  <Image
+                    src={getImageUrl(image.thumbnail || image)}
+                    alt={`${product.name} - imagem ${index + 1}`}
+                    width="80px"
+                    height="80px"
+                    objectFit="cover"
+                    fallback={<Image src="/placeholder-product.png" alt="Placeholder" />}
+                  />
+                </Box>
+              ))}
+            </HStack>
+          )}
         </VStack>
 
         {/* Informações do Produto */}
         <VStack align="stretch" spacing={6}>
           <Box>
-            <HStack spacing={2} mb={2}>
-              {product.isNew && <Badge colorScheme="green">Novo</Badge>}
-              {product.inStock ? (
-                <Badge colorScheme="blue">Em Estoque</Badge>
-              ) : (
-                <Badge colorScheme="red">Fora de Estoque</Badge>
-              )}
-            </HStack>
+          <HStack spacing={2} mb={2}>
+            {product.isNew && <Badge colorScheme="green">Novo</Badge>}
+            {product.stock > 0 ? (
+              <Badge colorScheme="blue">Em Estoque ({product.stock} unidades)</Badge>
+            ) : (
+              <Badge colorScheme="red">Fora de Estoque</Badge>
+            )}
+          </HStack>
 
             <HStack justify="space-between" align="start">
               <Heading size="lg" mb={2}>{product.name}</Heading>
@@ -199,7 +192,7 @@ function ProductDetail() {
           <Text>{product.description}</Text>
 
           {/* Seletor de Quantidade e Botão de Compra */}
-          {product.inStock && (
+          {product.stock > 0 && (
             <HStack spacing={4}>
               <HStack maxW="320px">
                 <Button {...dec}>-</Button>
