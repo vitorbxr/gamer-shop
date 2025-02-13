@@ -40,5 +40,24 @@ export const dashboardController = {
       console.error('Erro ao buscar status dos pedidos:', error);
       res.status(500).json({ error: error.message });
     }
+  },
+
+  async getSalesByCategory(req, res) {
+    try {
+      console.log('Iniciando busca de vendas por categoria');
+      const categoryData = await dashboardService.getSalesByCategory();
+      console.log('Dados obtidos:', categoryData);
+      res.json(categoryData);
+    } catch (error) {
+      console.error('Erro completo:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      res.status(500).json({ 
+        error: error.message,
+        details: error.stack 
+      });
+    }
   }
 };

@@ -55,6 +55,18 @@ app.use((req, res) => {
  res.status(404).json({ error: 'Rota não encontrada' });
 });
 
+app.use((err, req, res, next) => {
+  console.error('Erro na requisição:', {
+    path: req.path,
+    method: req.method,
+    error: {
+      message: err.message,
+      stack: err.stack
+    }
+  });
+  next(err);
+});
+
 // Middlewares de erro
 app.use(errorLogger);
 app.use((err, req, res, next) => {

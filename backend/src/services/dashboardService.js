@@ -174,5 +174,57 @@ export const dashboardService = {
       console.error('Erro ao buscar status dos pedidos:', error);
       throw error;
     }
+  },
+
+  async getSalesByCategory() {
+    try {
+      console.log('Iniciando query no service');
+      
+      // Primeiro, vamos testar apenas buscando as categorias
+      const categories = await prisma.category.findMany();
+      console.log('Categorias encontradas:', categories);
+  
+      // Se funcionar, vamos buscar os pedidos
+      const orderItems = await prisma.orderItem.findMany({
+        include: {
+          product: true
+        }
+      });
+      console.log('OrderItems encontrados:', orderItems);
+  
+      // Criar o mapa de categorias
+      const categoryMap = {};
+      categories.forEach(cat => {
+        categoryMap[cat.id] = {
+          name: cat.name,
+          value: 0,
+          color: `#${Math.floor(Math.random()*16777215).toString(16)}`
+        };
+      });
+  
+      // Somar as quantidades
+      orderItems.forEach(item => {
+        const categoryId = item.product?.categoryId;
+        if (categoryId && categoryMap[categoryId]) {
+          categoryMap[categoryId].value += item.quantity;
+        }
+      });
+  
+      // Converter para array
+      const result = Object.values(categoryMap)
+        .filter(cat => cat.value > 0)
+        .sort((a, b) => b.value - a.value);
+  
+      console.log('Resultado final:', result);
+      return result;
+  
+    } catch (error) {
+      console.error('Erro detalhado no service:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+      throw error;
+    }
   }
 };

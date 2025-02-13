@@ -20,7 +20,19 @@ import {
   Spinner,
   useToast
 } from '@chakra-ui/react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { 
+  LineChart, 
+  Line, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend
+} from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
 import { formatPrice } from '../../utils/format';
 import api from '../../services/api';
@@ -29,7 +41,9 @@ function Dashboard() {
   const [overview, setOverview] = useState(null);
   const [topProducts, setTopProducts] = useState([]);
   const [salesData, setSalesData] = useState([]);
+  const [orderStatus, setOrderStatus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [categoryData, setCategoryData] = useState([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -39,18 +53,31 @@ function Dashboard() {
   const loadDashboardData = async () => {
     try {
       setIsLoading(true);
-      const [overviewData, topProductsData, salesByPeriod] = await Promise.all([
+      const [
+        overviewData, 
+        topProductsData, 
+        salesByPeriod, 
+        orderStatusData,
+        categoryData
+      ] = await Promise.all([
         api.get('/dashboard/overview'),
         api.get('/dashboard/top-products'),
-        api.get('/dashboard/sales-by-period')
+        api.get('/dashboard/sales-by-period'),
+        api.get('/dashboard/order-status'),
+        api.get('/dashboard/sales-by-category')
       ]);
-
+  
       setOverview(overviewData.data);
       setTopProducts(topProductsData.data);
       setSalesData(salesByPeriod.data.map(sale => ({
         ...sale,
-        date: new Date(sale.createdAt).toLocaleDateString()
+        date: new Date(sale.date).toLocaleDateString('pt-BR', {
+          day: '2-digit',
+          month: '2-digit'
+        })
       })));
+      setOrderStatus(orderStatusData.data);
+      setCategoryData(categoryData.data);
     } catch (error) {
       toast({
         title: "Erro ao carregar dados",
@@ -112,20 +139,99 @@ function Dashboard() {
         </SimpleGrid>
 
         <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+        <Card>
+          <CardHeader>
+            <Heading size="md">Vendas dos Últimos 30 Dias</Heading>
+          </CardHeader>
+          <CardBody>
+            <Box height="300px">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={salesData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="date"
+                    tickFormatter={(value) => value}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => formatPrice(value)}
+                  />
+                  <Tooltip 
+                    formatter={(value) => formatPrice(value)}
+                    labelFormatter={(label) => `Data: ${label}`}
+                  />
+                  <Line 
+                    type="monotone" 
+                    dataKey="totalAmount" 
+                    stroke="#3182ce"
+                    name="Vendas"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </Box>
+          </CardBody>
+        </Card>
+
           <Card>
             <CardHeader>
-              <Heading size="md">Vendas dos Últimos 30 Dias</Heading>
+              <Heading size="md">Status dos Pedidos</Heading>
             </CardHeader>
             <CardBody>
               <Box height="300px">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="date" />
-                    <YAxis />
-                    <Tooltip formatter={(value) => formatPrice(value)} />
-                    <Line type="monotone" dataKey="totalAmount" stroke="#3182ce" />
-                  </LineChart>
+                  <PieChart>
+                    <Pie
+                      data={orderStatus}
+                      dataKey="count"
+                      nameKey="status"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    >
+                      {orderStatus.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <Heading size="md">Vendas por Categoria</Heading>
+            </CardHeader>
+            <CardBody>
+              <Box height="300px">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryData}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={100}
+                      label={({name, percent}) => 
+                        `${name} (${(percent * 100).toFixed(0)}%)`
+                      }
+                    >
+                      {categoryData.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={entry.color || `#${Math.floor(Math.random()*16777215).toString(16)}`} 
+                        />
+                      ))}
+                    </Pie>
+                    <Legend />
+                    <Tooltip 
+                      formatter={(value) => `${value} unidades`}
+                      labelFormatter={(label) => `Categoria: ${label}`}
+                    />
+                  </PieChart>
                 </ResponsiveContainer>
               </Box>
             </CardBody>
@@ -146,8 +252,8 @@ function Dashboard() {
                 <Tbody>
                   {topProducts.map((item, index) => (
                     <Tr key={index}>
-                      <Td>{item.product?.name || 'Produto não encontrado'}</Td>
-                      <Td isNumeric>{item.quantity || 0}</Td>
+                      <Td>{item.product?.name}</Td>
+                      <Td isNumeric>{item.quantity}</Td>
                     </Tr>
                   ))}
                 </Tbody>
