@@ -226,5 +226,40 @@ export const dashboardService = {
       });
       throw error;
     }
+  },
+
+  async getLowStockProducts() {
+    try {
+      const lowStockProducts = await prisma.product.findMany({
+        where: {
+          stock: {
+            lte: 5  // Produtos com 5 ou menos unidades
+          }
+        },
+        include: {
+          category: true,
+          brand: true
+        },
+        orderBy: {
+          stock: 'asc'  // Ordenar do menor para o maior estoque
+        }
+      });
+  
+      return lowStockProducts.map(product => ({
+        id: product.id,
+        name: product.name,
+        stock: product.stock,
+        category: product.category?.name || 'Sem categoria',
+        brand: product.brand?.name || 'Sem marca',
+        status: product.stock === 0 ? 'outOfStock' : 'lowStock',
+        alert: product.stock === 0 
+          ? 'Produto sem estoque!' 
+          : `Estoque baixo: ${product.stock} unidades`,
+        severity: product.stock === 0 ? 'error' : 'warning'
+      }));
+    } catch (error) {
+      console.error('Erro ao buscar produtos com estoque baixo:', error);
+      throw error;
+    }
   }
 };

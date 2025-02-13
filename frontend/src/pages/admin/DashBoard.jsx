@@ -34,6 +34,7 @@ import {
   Legend
 } from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
+import StockAlerts from '../../components/admin/StockAlerts';
 import { formatPrice } from '../../utils/format';
 import api from '../../services/api';
 
@@ -44,6 +45,7 @@ function Dashboard() {
   const [orderStatus, setOrderStatus] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [categoryData, setCategoryData] = useState([]);
+  const [lowStockProducts, setLowStockProducts] = useState([]);
   const toast = useToast();
 
   useEffect(() => {
@@ -58,13 +60,15 @@ function Dashboard() {
         topProductsData, 
         salesByPeriod, 
         orderStatusData,
-        categoryData
+        categoryData,
+        lowStockData
       ] = await Promise.all([
         api.get('/dashboard/overview'),
         api.get('/dashboard/top-products'),
         api.get('/dashboard/sales-by-period'),
         api.get('/dashboard/order-status'),
-        api.get('/dashboard/sales-by-category')
+        api.get('/dashboard/sales-by-category'),
+        api.get('/dashboard/low-stock')
       ]);
   
       setOverview(overviewData.data);
@@ -78,6 +82,7 @@ function Dashboard() {
       })));
       setOrderStatus(orderStatusData.data);
       setCategoryData(categoryData.data);
+      setLowStockProducts(lowStockData.data);
     } catch (error) {
       toast({
         title: "Erro ao carregar dados",
@@ -197,6 +202,15 @@ function Dashboard() {
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
+            </CardBody>
+          </Card>
+
+          <Card gridColumn={{ base: 'auto', lg: 'span 2' }}> {/* Este Card ocupará duas colunas */}
+            <CardHeader>
+              <Heading size="md">Alertas de Estoque</Heading>
+            </CardHeader>
+            <CardBody>
+              <StockAlerts products={lowStockProducts} />
             </CardBody>
           </Card>
 

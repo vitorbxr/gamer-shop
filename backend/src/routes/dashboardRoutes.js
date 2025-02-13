@@ -10,5 +10,6 @@ router.get('/top-products', auth, dashboardController.getTopProducts);
 router.get('/sales-by-period', auth, dashboardController.getSalesByPeriod);
 router.get('/order-status', auth, dashboardController.getOrderStatus);
 router.get('/sales-by-category', auth, dashboardController.getSalesByCategory);
+router.get('/low-stock', auth, dashboardController.getLowStockProducts);
 
 export default router;

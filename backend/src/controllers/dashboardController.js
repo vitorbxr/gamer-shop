@@ -59,5 +59,15 @@ export const dashboardController = {
         details: error.stack 
       });
     }
+  },
+
+  async getLowStockProducts(req, res) {
+    try {
+      const products = await dashboardService.getLowStockProducts();
+      res.json(products);
+    } catch (error) {
+      console.error('Erro ao buscar produtos com estoque baixo:', error);
+      res.status(500).json({ error: error.message });
+    }
   }
 };
