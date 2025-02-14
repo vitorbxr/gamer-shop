@@ -25,15 +25,13 @@ import { useCart } from '../contexts/CartContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
-  const { getCartCount } = useCart();
+  const { itemCount } = useCart();  // Alterado de getCartCount para itemCount
   const navigate = useNavigate();
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
-
-  const cartCount = getCartCount();
 
   return (
     <Box
@@ -77,7 +75,7 @@ export default function Navbar() {
               <Button variant="ghost">
                 🛒
               </Button>
-              {cartCount > 0 && (
+              {itemCount > 0 && (  // Alterado de cartCount para itemCount
                 <Badge
                   colorScheme="red"
                   borderRadius="full"
@@ -85,7 +83,7 @@ export default function Navbar() {
                   top="-1"
                   right="-1"
                 >
-                  {cartCount}
+                  {itemCount}  {/* Alterado de cartCount para itemCount */}
                 </Badge>
               )}
             </Link>

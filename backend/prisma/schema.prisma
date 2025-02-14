@@ -8,14 +8,15 @@ datasource db {
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
-  email     String    @unique
-  password  String
-  name      String
-  role      String    @default("USER")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  orders    Order[]   
+  id          Int         @id @default(autoincrement())
+  email       String      @unique
+  password    String
+  name        String
+  role        String      @default("USER")
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  orders      Order[]
+  addresses   Address[]   // Adicionado relação com endereços
 }
 
 model Product {
@@ -34,7 +35,7 @@ model Product {
   updatedAt       DateTime    @updatedAt
   category        Category?   @relation(fields: [categoryId], references: [id])
   brand           Brand?      @relation(fields: [brandId], references: [id])
-  orderItems      OrderItem[] 
+  orderItems      OrderItem[]
 }
 
 model Category {
@@ -52,7 +53,7 @@ model Brand {
 model Order {
   id          Int         @id @default(autoincrement())
   userId      Int
-  status      String      @default("pending")
+  status      OrderStatus @default(PENDING)
   totalAmount Float
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
@@ -61,6 +62,19 @@ model Order {
   items       OrderItem[]
   payment     Payment?
   shipping    Shipping?
+  
+  discountAmount Float?    // Para cupons de desconto
+  couponCode     String?   // Código do cupom usado
+}
+
+enum OrderStatus {
+  PENDING
+  PROCESSING
+  AWAITING_PAYMENT
+  PAID
+  SHIPPED
+  DELIVERED
+  CANCELLED
 }
 
 model OrderItem {
@@ -68,37 +82,92 @@ model OrderItem {
   orderId   Int
   productId Int
   quantity  Int
-  price     Float
+  price     Float    // Preço no momento da compra
 
   order     Order    @relation(fields: [orderId], references: [id])
   product   Product  @relation(fields: [productId], references: [id])
 }
 
 model Payment {
-  id            Int      @id @default(autoincrement())
-  orderId       Int      @unique
-  method        String
-  status        String
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  method        PaymentMethod
+  status        PaymentStatus @default(PENDING)
   amount        Float
-  installments  Int?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  currency      String        @default("EUR")  // Alterado para EUR
+  
+  // Campos para Multibanco
+  entity        String?       // Entidade
+  reference     String?       // Referência
+  
+  // Campos para cartão
+  lastDigits    String?       // Últimos 4 dígitos do cartão
+  installments  Int?          // Parcelas (se aplicável)
+  
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  order         Order    @relation(fields: [orderId], references: [id])
+  order         Order         @relation(fields: [orderId], references: [id])
+}
+
+enum PaymentMethod {
+  CREDIT_CARD
+  DEBIT_CARD
+  MBWAY
+  MULTIBANCO
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  REFUNDED
 }
 
 model Shipping {
-  id            Int      @id @default(autoincrement())
-  orderId       Int      @unique
-  address       String
+  id            Int           @id @default(autoincrement())
+  orderId       Int           @unique
+  method        ShippingMethod
+  status        ShippingStatus @default(PENDING)
+  address       String        // Endereço completo
+  postalCode    String        // Código postal português
   city          String
-  state         String
-  zipCode       String
-  status        String
-  trackingCode  String?
+  district      String        // Distrito em Portugal
+  country       String        @default("Portugal")
   cost          Float
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  trackingCode  String?       // Código de rastreio CTT
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
 
-  order         Order    @relation(fields: [orderId], references: [id])
+  order         Order         @relation(fields: [orderId], references: [id])
+}
+
+enum ShippingMethod {
+  CTT_NORMAL
+  CTT_EXPRESS
+}
+
+enum ShippingStatus {
+  PENDING
+  PROCESSING
+  SHIPPED
+  DELIVERED
+}
+
+model Address {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  street      String
+  number      String
+  complement  String?
+  district    String    // Distrito em Portugal
+  city        String
+  postalCode  String    // Código postal português
+  country     String    @default("Portugal")
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user        User      @relation(fields: [userId], references: [id])
 }
