@@ -194,6 +194,7 @@ async function main() {
       role: 'ADMIN'
     }
   });
+  console.log('Usuário admin criado:', admin);
 
   console.log('Dados iniciais criados com sucesso!');
 }

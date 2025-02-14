@@ -13,6 +13,7 @@ import authRoutes from './routes/authRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
+import orderRoutes from './routes/orderRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Handler para rotas não encontradas
 app.use((req, res) => {
