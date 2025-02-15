@@ -171,3 +171,25 @@ model Address {
 
   user        User      @relation(fields: [userId], references: [id])
 }
+
+model Coupon {
+  id          Int       @id @default(autoincrement())
+  code        String    @unique
+  discount    Float     // Valor do desconto em porcentagem
+  type        CouponType
+  value       Float     // Valor do desconto (fixo ou percentual)
+  minValue    Float?    // Valor mínimo da compra
+  maxUses     Int?      // Número máximo de usos
+  usedCount   Int       @default(0)
+  startDate   DateTime  // Data de início da validade
+  endDate     DateTime  // Data de fim da validade
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  orders      Order[]   // Relação com pedidos que usaram este cupom
+}
+
+enum CouponType {
+  PERCENTAGE  // Desconto percentual
+  FIXED       // Valor fixo
+}

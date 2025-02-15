@@ -10,6 +10,7 @@ import {
   Badge,
   IconButton,
   Tooltip,
+  useToast,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { StarIcon } from '@chakra-ui/icons';
@@ -22,6 +23,7 @@ function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const isFavorite = isInWishlist(product.id);
 
@@ -29,9 +31,25 @@ function ProductCard({ product }) {
     navigate(`/product/${product.id}`);
   };
 
-  const handleAddToCart = (e) => {
+  const handleAddToCart = async (e) => {
     e.stopPropagation();
-    addToCart(product, 1);
+    try {
+      await addToCart(product, 1);
+      toast({
+        title: "Produto adicionado ao carrinho",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao adicionar ao carrinho",
+        description: error.message,
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleToggleWishlist = (e) => {
@@ -60,7 +78,6 @@ function ProductCard({ product }) {
       cursor="pointer"
       position="relative"
     >
-      {/* Botão de Favoritos */}
       <Tooltip label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}>
         <IconButton
           icon={isFavorite ? <StarIcon fill="red.500" /> : <StarIcon />}
@@ -75,13 +92,13 @@ function ProductCard({ product }) {
         />
       </Tooltip>
 
-      <Box position="relative" height="200px"> {/* Container com altura fixa */}
+      <Box position="relative" height="200px">
         <Image
           src={getImageUrl(product.image)}
           alt={product.name}
           width="100%"
           height="100%"
-          objectFit="contain" // Isso fará a imagem caber inteira sem cortar
+          objectFit="contain"
           fallback={
             <Image
               src="/placeholder-product.png"

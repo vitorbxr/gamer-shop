@@ -1,3 +1,4 @@
+// src/components/cart/CartSummary.jsx
 import React from 'react';
 import {
   Box,
@@ -10,12 +11,13 @@ import {
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
+import { formatPrice } from '../../utils/format';
 
 const CartSummary = ({ onCheckout, isCheckoutPage = false }) => {
   const { items, total, formatPrice } = useCart();
   const navigate = useNavigate();
   
-  // Valores fixos para frete (você pode tornar isso dinâmico depois)
+  // Valores fixos para frete (pode ser dinamizado depois)
   const shippingMethods = {
     CTT_NORMAL: {
       label: 'CTT Normal',
@@ -62,14 +64,6 @@ const CartSummary = ({ onCheckout, isCheckoutPage = false }) => {
             <Text color="gray.600">Frete</Text>
             <Text>{formatPrice(shipping)}</Text>
           </HStack>
-
-          {/* Adicionar linha para desconto quando implementarmos cupons */}
-          {/* {discount > 0 && (
-            <HStack justify="space-between" color="green.500">
-              <Text>Desconto</Text>
-              <Text>- {formatPrice(discount)}</Text>
-            </HStack>
-          )} */}
 
           <Divider my={2} />
 

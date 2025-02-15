@@ -84,6 +84,7 @@ function ProductDetail() {
 
   const handleAddToCart = () => {
     const quantity = parseInt(value);
+    console.log('Tentando adicionar ao carrinho:', { product, quantity });
     addToCart(product, quantity);
     toast({
       title: "Produto adicionado ao carrinho",

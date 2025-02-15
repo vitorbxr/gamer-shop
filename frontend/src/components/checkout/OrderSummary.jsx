@@ -8,31 +8,25 @@ import {
   Button,
   Divider,
   Grid,
-  GridItem,
   Image,
   HStack,
-  Badge
+  Alert,
+  AlertIcon,
 } from '@chakra-ui/react';
-import { formatPrice } from '../../utils/format.js';
+import { formatPrice } from '../../utils/format';
 
-function OrderSummary({ deliveryData, paymentData, cartItems, total, onConfirm }) {
-  const shipping = 25.00; // Valor fixo do frete
-  const finalTotal = total + shipping;
-
-  const formatAddress = (data) => {
-    return `${data.street}, ${data.number}${data.complement ? ` - ${data.complement}` : ''}
-    ${data.neighborhood} - ${data.city}/${data.state}
-    CEP: ${data.cep}`;
-  };
+const OrderSummary = ({ items, total, deliveryData, paymentData, onConfirm }) => {
+  const shippingCost = deliveryData?.shippingMethod === 'CTT_EXPRESS' ? 10.00 : 5.00;
+  const finalTotal = total + shippingCost;
 
   const formatPaymentMethod = (method) => {
     switch (method) {
-      case 'credit':
+      case 'CREDIT_CARD':
         return `Cartão de Crédito - Final ${paymentData.cardNumber.slice(-4)}`;
-      case 'pix':
-        return 'PIX';
-      case 'boleto':
-        return 'Boleto Bancário';
+      case 'MBWAY':
+        return 'MB WAY';
+      case 'MULTIBANCO':
+        return 'Multibanco';
       default:
         return method;
     }
@@ -40,61 +34,63 @@ function OrderSummary({ deliveryData, paymentData, cartItems, total, onConfirm }
 
   return (
     <VStack spacing={6} align="stretch">
-      <Box borderWidth="1px" borderRadius="lg" p={6}>
+      <Alert status="info" mb={4}>
+        <AlertIcon />
+        Por favor, confirme os detalhes do seu pedido antes de finalizar.
+      </Alert>
+
+      {/* Endereço de Entrega */}
+      <Box borderWidth="1px" borderRadius="lg" p={4}>
+        <Heading size="md" mb={4}>Endereço de Entrega</Heading>
+        <Text><strong>Nome:</strong> {deliveryData.name}</Text>
+        <Text><strong>Endereço:</strong> {deliveryData.street}, {deliveryData.number}</Text>
+        {deliveryData.complement && (
+          <Text><strong>Complemento:</strong> {deliveryData.complement}</Text>
+        )}
+        <Text><strong>Cidade:</strong> {deliveryData.city}</Text>
+        <Text><strong>Distrito:</strong> {deliveryData.district}</Text>
+        <Text><strong>Código Postal:</strong> {deliveryData.postalCode}</Text>
+        <Text><strong>Telefone:</strong> {deliveryData.phone}</Text>
+      </Box>
+
+      {/* Método de Pagamento */}
+      <Box borderWidth="1px" borderRadius="lg" p={4}>
+        <Heading size="md" mb={4}>Método de Pagamento</Heading>
+        <Text>{formatPaymentMethod(paymentData.paymentMethod)}</Text>
+      </Box>
+
+      {/* Itens do Pedido */}
+      <Box borderWidth="1px" borderRadius="lg" p={4}>
+        <Heading size="md" mb={4}>Itens do Pedido</Heading>
         <VStack spacing={4} align="stretch">
-          <Heading size="md">Endereço de Entrega</Heading>
-          <Text>{deliveryData.receiver}</Text>
-          <Text whiteSpace="pre-line">{formatAddress(deliveryData)}</Text>
+          {items.map((item) => (
+            <Grid
+              key={item.id}
+              templateColumns="100px 1fr auto"
+              gap={4}
+              alignItems="center"
+            >
+              <Image
+                src={item.image}
+                alt={item.name}
+                boxSize="100px"
+                objectFit="cover"
+                borderRadius="md"
+              />
+              <Box>
+                <Text fontWeight="bold">{item.name}</Text>
+                <Text>Quantidade: {item.quantity}</Text>
+              </Box>
+              <Text fontWeight="bold">{formatPrice(item.price * item.quantity)}</Text>
+            </Grid>
+          ))}
         </VStack>
       </Box>
 
-      <Box borderWidth="1px" borderRadius="lg" p={6}>
-        <VStack spacing={4} align="stretch">
-          <Heading size="md">Forma de Pagamento</Heading>
-          <Text>{formatPaymentMethod(paymentData.paymentMethod)}</Text>
-          {paymentData.paymentMethod === 'credit' && (
-            <Text>
-              {paymentData.installments}x {formatPrice(finalTotal / parseInt(paymentData.installments))}
-            </Text>
-          )}
-        </VStack>
-      </Box>
-
-      <Box borderWidth="1px" borderRadius="lg" p={6}>
-        <VStack spacing={4} align="stretch">
-          <Heading size="md">Itens do Pedido</Heading>
-          <VStack spacing={4} align="stretch">
-            {cartItems.map((item) => (
-              <Grid
-                key={item.id}
-                templateColumns="100px 1fr auto"
-                gap={4}
-                alignItems="center"
-              >
-                <Image
-                  src={item.images?.[0] || "/placeholder-image.jpg"}
-                  alt={item.name}
-                  borderRadius="md"
-                  objectFit="cover"
-                  boxSize="100px"
-                />
-                <VStack align="start" spacing={1}>
-                  <Text fontWeight="bold">{item.name}</Text>
-                  <Text>Quantidade: {item.quantity}</Text>
-                </VStack>
-                <Text fontWeight="bold">
-                  {formatPrice(item.price * item.quantity)}
-                </Text>
-              </Grid>
-            ))}
-          </VStack>
-        </VStack>
-      </Box>
-
-      <Box borderWidth="1px" borderRadius="lg" p={6}>
-        <VStack spacing={4} align="stretch">
-          <Heading size="md">Resumo de Valores</Heading>
-          
+      {/* Resumo dos Valores */}
+      <Box borderWidth="1px" borderRadius="lg" p={4}>
+        <Heading size="md" mb={4}>Resumo de Valores</Heading>
+        <VStack spacing={2} align="stretch">
           <HStack justify="space-between">
             <Text>Subtotal</Text>
             <Text>{formatPrice(total)}</Text>
@@ -102,27 +98,27 @@ function OrderSummary({ deliveryData, paymentData, cartItems, total, onConfirm }
           
           <HStack justify="space-between">
             <Text>Frete</Text>
-            <Text>{formatPrice(shipping)}</Text>
+            <Text>{formatPrice(shippingCost)}</Text>
           </HStack>
           
-          <Divider />
+          <Divider my={2} />
           
           <HStack justify="space-between" fontWeight="bold">
             <Text>Total</Text>
             <Text fontSize="xl">{formatPrice(finalTotal)}</Text>
           </HStack>
-
-          <Button
-            colorScheme="green"
-            size="lg"
-            onClick={onConfirm}
-          >
-            Confirmar Pedido
-          </Button>
         </VStack>
       </Box>
+
+      <Button
+        colorScheme="green"
+        size="lg"
+        onClick={onConfirm}
+      >
+        Confirmar e Finalizar Pedido
+      </Button>
     </VStack>
   );
-}
+};
 
 export default OrderSummary;

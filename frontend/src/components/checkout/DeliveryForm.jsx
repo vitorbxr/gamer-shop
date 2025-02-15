@@ -9,117 +9,175 @@ import {
   Grid,
   GridItem,
   Select,
-  useToast
+  FormErrorMessage,
+  RadioGroup,
+  Radio,
+  Stack,
+  Text,
+  useToast,
+  Box,
 } from '@chakra-ui/react';
+import { formatPostalCode, isValidPostalCode } from '../../utils/format';
+
+const distritos = [
+  'Aveiro', 'Beja', 'Braga', 'Bragança', 'Castelo Branco',
+  'Coimbra', 'Évora', 'Faro', 'Guarda', 'Leiria', 'Lisboa',
+  'Portalegre', 'Porto', 'Santarém', 'Setúbal', 'Viana do Castelo',
+  'Vila Real', 'Viseu'
+];
+
+const shippingOptions = [
+  { id: 'CTT_NORMAL', label: 'CTT Normal (2-3 dias úteis)', price: 5.00 },
+  { id: 'CTT_EXPRESS', label: 'CTT Expresso (1-2 dias úteis)', price: 10.00 }
+];
+
+const defaultFormData = {
+  name: '',
+  postalCode: '',
+  street: '',
+  number: '',
+  complement: '',
+  district: '',
+  city: '',
+  phone: '',
+  shippingMethod: 'CTT_NORMAL'
+};
 
 function DeliveryForm({ onSubmit, initialData }) {
-  const [formData, setFormData] = useState(initialData || {
-    cep: '',
-    street: '',
-    number: '',
-    complement: '',
-    neighborhood: '',
-    city: '',
-    state: '',
-    receiver: ''
+  const [formData, setFormData] = useState({
+    ...defaultFormData,
+    ...(initialData || {})
   });
 
+  const [errors, setErrors] = useState({});
   const toast = useToast();
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const validateForm = () => {
+    const newErrors = {};
 
-  const handleSearchCEP = async () => {
-    if (formData.cep.length !== 8) {
-      toast({
-        title: "CEP inválido",
-        description: "Por favor, digite um CEP válido.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
-      return;
+    if (!formData.name.trim()) {
+      newErrors.name = 'Nome é obrigatório';
     }
 
-    try {
-      const response = await fetch(`https://viacep.com.br/ws/${formData.cep}/json/`);
-      const data = await response.json();
-
-      if (data.erro) {
-        toast({
-          title: "CEP não encontrado",
-          status: "error",
-          duration: 3000,
-          isClosable: true,
-        });
-        return;
-      }
-
-      setFormData(prev => ({
-        ...prev,
-        street: data.logradouro,
-        neighborhood: data.bairro,
-        city: data.localidade,
-        state: data.uf
-      }));
-    } catch (error) {
-      toast({
-        title: "Erro ao buscar CEP",
-        description: "Tente novamente mais tarde.",
-        status: "error",
-        duration: 3000,
-        isClosable: true,
-      });
+    if (!isValidPostalCode(formData.postalCode)) {
+      newErrors.postalCode = 'Código postal inválido';
     }
+
+    if (!formData.street.trim()) {
+      newErrors.street = 'Rua é obrigatória';
+    }
+
+    if (!formData.number.trim()) {
+      newErrors.number = 'Número é obrigatório';
+    }
+
+    if (!formData.district) {
+      newErrors.district = 'Distrito é obrigatório';
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'Cidade é obrigatória';
+    }
+
+    if (!formData.phone.trim()) {
+      newErrors.phone = 'Telefone é obrigatório';
+    } else if (!/^[0-9]{9}$/.test(formData.phone.replace(/\D/g, ''))) {
+      newErrors.phone = 'Telefone inválido';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Validação básica
-    const requiredFields = ['cep', 'street', 'number', 'neighborhood', 'city', 'state', 'receiver'];
-    const missingFields = requiredFields.filter(field => !formData[field]);
-
-    if (missingFields.length > 0) {
+    
+    if (validateForm()) {
+      onSubmit({
+        ...formData,
+        postalCode: formatPostalCode(formData.postalCode)
+      });
+    } else {
       toast({
-        title: "Campos obrigatórios",
-        description: "Por favor, preencha todos os campos obrigatórios.",
-        status: "error",
+        title: 'Erro no formulário',
+        description: 'Por favor, preencha todos os campos obrigatórios corretamente.',
+        status: 'error',
         duration: 3000,
         isClosable: true,
       });
-      return;
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    
+    if (name === 'postalCode') {
+      setFormData(prev => ({
+        ...prev,
+        [name]: formatPostalCode(value)
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
     }
 
-    onSubmit(formData);
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
   return (
     <form onSubmit={handleSubmit}>
       <VStack spacing={6} align="stretch">
+        <FormControl isRequired isInvalid={errors.name}>
+          <FormLabel>Nome Completo</FormLabel>
+          <Input
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            placeholder="Nome de quem vai receber"
+          />
+          <FormErrorMessage>{errors.name}</FormErrorMessage>
+        </FormControl>
+
         <Grid templateColumns="repeat(12, 1fr)" gap={4}>
           <GridItem colSpan={{ base: 12, md: 4 }}>
-            <FormControl isRequired>
-              <FormLabel>CEP</FormLabel>
+            <FormControl isRequired isInvalid={errors.postalCode}>
+              <FormLabel>Código Postal</FormLabel>
               <Input
-                name="cep"
-                value={formData.cep}
+                name="postalCode"
+                value={formData.postalCode}
                 onChange={handleChange}
-                onBlur={handleSearchCEP}
-                placeholder="00000-000"
+                placeholder="1234-567"
                 maxLength={8}
               />
+              <FormErrorMessage>{errors.postalCode}</FormErrorMessage>
+            </FormControl>
+          </GridItem>
+
+          <GridItem colSpan={{ base: 12, md: 8 }}>
+            <FormControl isRequired isInvalid={errors.phone}>
+              <FormLabel>Telefone</FormLabel>
+              <Input
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                placeholder="912345678"
+                maxLength={9}
+              />
+              <FormErrorMessage>{errors.phone}</FormErrorMessage>
             </FormControl>
           </GridItem>
         </Grid>
 
         <Grid templateColumns="repeat(12, 1fr)" gap={4}>
           <GridItem colSpan={{ base: 12, md: 8 }}>
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={errors.street}>
               <FormLabel>Rua</FormLabel>
               <Input
                 name="street"
@@ -127,11 +185,12 @@ function DeliveryForm({ onSubmit, initialData }) {
                 onChange={handleChange}
                 placeholder="Nome da rua"
               />
+              <FormErrorMessage>{errors.street}</FormErrorMessage>
             </FormControl>
           </GridItem>
 
           <GridItem colSpan={{ base: 12, md: 4 }}>
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={errors.number}>
               <FormLabel>Número</FormLabel>
               <Input
                 name="number"
@@ -139,39 +198,43 @@ function DeliveryForm({ onSubmit, initialData }) {
                 onChange={handleChange}
                 placeholder="Número"
               />
+              <FormErrorMessage>{errors.number}</FormErrorMessage>
             </FormControl>
           </GridItem>
         </Grid>
 
+        <FormControl>
+          <FormLabel>Complemento</FormLabel>
+          <Input
+            name="complement"
+            value={formData.complement}
+            onChange={handleChange}
+            placeholder="Apartamento, Bloco, etc."
+          />
+        </FormControl>
+
         <Grid templateColumns="repeat(12, 1fr)" gap={4}>
           <GridItem colSpan={{ base: 12, md: 6 }}>
-            <FormControl>
-              <FormLabel>Complemento</FormLabel>
-              <Input
-                name="complement"
-                value={formData.complement}
+            <FormControl isRequired isInvalid={errors.district}>
+              <FormLabel>Distrito</FormLabel>
+              <Select
+                name="district"
+                value={formData.district}
                 onChange={handleChange}
-                placeholder="Apto, Bloco, etc."
-              />
+                placeholder="Selecione o distrito"
+              >
+                {distritos.map(distrito => (
+                  <option key={distrito} value={distrito}>
+                    {distrito}
+                  </option>
+                ))}
+              </Select>
+              <FormErrorMessage>{errors.district}</FormErrorMessage>
             </FormControl>
           </GridItem>
 
           <GridItem colSpan={{ base: 12, md: 6 }}>
-            <FormControl isRequired>
-              <FormLabel>Bairro</FormLabel>
-              <Input
-                name="neighborhood"
-                value={formData.neighborhood}
-                onChange={handleChange}
-                placeholder="Bairro"
-              />
-            </FormControl>
-          </GridItem>
-        </Grid>
-
-        <Grid templateColumns="repeat(12, 1fr)" gap={4}>
-          <GridItem colSpan={{ base: 12, md: 6 }}>
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={errors.city}>
               <FormLabel>Cidade</FormLabel>
               <Input
                 name="city"
@@ -179,59 +242,33 @@ function DeliveryForm({ onSubmit, initialData }) {
                 onChange={handleChange}
                 placeholder="Cidade"
               />
-            </FormControl>
-          </GridItem>
-
-          <GridItem colSpan={{ base: 12, md: 6 }}>
-            <FormControl isRequired>
-              <FormLabel>Estado</FormLabel>
-              <Select
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-                placeholder="Selecione o estado"
-              >
-                <option value="AC">Acre</option>
-                <option value="AL">Alagoas</option>
-                <option value="AP">Amapá</option>
-                <option value="AM">Amazonas</option>
-                <option value="BA">Bahia</option>
-                <option value="CE">Ceará</option>
-                <option value="DF">Distrito Federal</option>
-                <option value="ES">Espírito Santo</option>
-                <option value="GO">Goiás</option>
-                <option value="MA">Maranhão</option>
-                <option value="MT">Mato Grosso</option>
-                <option value="MS">Mato Grosso do Sul</option>
-                <option value="MG">Minas Gerais</option>
-                <option value="PA">Pará</option>
-                <option value="PB">Paraíba</option>
-                <option value="PR">Paraná</option>
-                <option value="PE">Pernambuco</option>
-                <option value="PI">Piauí</option>
-                <option value="RJ">Rio de Janeiro</option>
-                <option value="RN">Rio Grande do Norte</option>
-                <option value="RS">Rio Grande do Sul</option>
-                <option value="RO">Rondônia</option>
-                <option value="RR">Roraima</option>
-                <option value="SC">Santa Catarina</option>
-                <option value="SP">São Paulo</option>
-                <option value="SE">Sergipe</option>
-                <option value="TO">Tocantins</option>
-              </Select>
+              <FormErrorMessage>{errors.city}</FormErrorMessage>
             </FormControl>
           </GridItem>
         </Grid>
 
-        <FormControl isRequired>
-          <FormLabel>Nome do Recebedor</FormLabel>
-          <Input
-            name="receiver"
-            value={formData.receiver}
-            onChange={handleChange}
-            placeholder="Nome completo de quem vai receber"
-          />
-        </FormControl>
+        <Box borderWidth="1px" borderRadius="lg" p={4}>
+          <FormControl isRequired>
+            <FormLabel>Método de Envio</FormLabel>
+            <RadioGroup
+              value={formData.shippingMethod}
+              onChange={(value) => setFormData(prev => ({ ...prev, shippingMethod: value }))}
+            >
+              <Stack>
+                {shippingOptions.map(option => (
+                  <Radio key={option.id} value={option.id}>
+                    <Text>
+                      {option.label} - {new Intl.NumberFormat('pt-PT', {
+                        style: 'currency',
+                        currency: 'EUR'
+                      }).format(option.price)}
+                    </Text>
+                  </Radio>
+                ))}
+              </Stack>
+            </RadioGroup>
+          </FormControl>
+        </Box>
 
         <Button
           type="submit"

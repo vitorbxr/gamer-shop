@@ -1,4 +1,4 @@
-// frontend/src/pages/admin/Dashboard.jsx
+// src/pages/admin/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -7,6 +7,7 @@ import {
   StatLabel,
   StatNumber,
   StatHelpText,
+  StatArrow,
   Card,
   CardHeader,
   CardBody,
@@ -18,7 +19,13 @@ import {
   Th,
   Td,
   Spinner,
-  useToast
+  useToast,
+  Text,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  Badge,
+  Stack,
 } from '@chakra-ui/react';
 import { 
   LineChart, 
@@ -34,20 +41,19 @@ import {
   Legend
 } from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
-import StockAlerts from '../../components/admin/StockAlerts';
-import PaymentMetrics from '../../components/admin/PaymentMetrics';
 import { formatPrice } from '../../utils/format';
 import api from '../../services/api';
 
 function Dashboard() {
-  const [overview, setOverview] = useState(null);
-  const [topProducts, setTopProducts] = useState([]);
-  const [salesData, setSalesData] = useState([]);
-  const [orderStatus, setOrderStatus] = useState([]);
+  const [data, setData] = useState({
+    overview: null,
+    salesByPeriod: [],
+    orderStatus: [],
+    topProducts: [],
+    salesByCategory: [],
+    paymentMetrics: null
+  });
   const [isLoading, setIsLoading] = useState(true);
-  const [categoryData, setCategoryData] = useState([]);
-  const [lowStockProducts, setLowStockProducts] = useState([]);
-  const [paymentMetrics, setPaymentMetrics] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -58,36 +64,29 @@ function Dashboard() {
     try {
       setIsLoading(true);
       const [
-        overviewData, 
-        topProductsData, 
-        salesByPeriod, 
-        orderStatusData,
-        categoryData,
-        lowStockData
+        overview,
+        salesByPeriod,
+        orderStatus,
+        topProducts,
+        salesByCategory,
+        paymentMetrics
       ] = await Promise.all([
         api.get('/dashboard/overview'),
-        api.get('/dashboard/top-products'),
         api.get('/dashboard/sales-by-period'),
         api.get('/dashboard/order-status'),
+        api.get('/dashboard/top-products'),
         api.get('/dashboard/sales-by-category'),
-        api.get('/dashboard/low-stock')
+        api.get('/dashboard/payment-metrics')
       ]);
 
-      const paymentMetricsData = await api.get('/dashboard/payment-metrics');
-      setPaymentMetrics(paymentMetricsData.data);
-  
-      setOverview(overviewData.data);
-      setTopProducts(topProductsData.data);
-      setSalesData(salesByPeriod.data.map(sale => ({
-        ...sale,
-        date: new Date(sale.date).toLocaleDateString('pt-BR', {
-          day: '2-digit',
-          month: '2-digit'
-        })
-      })));
-      setOrderStatus(orderStatusData.data);
-      setCategoryData(categoryData.data);
-      setLowStockProducts(lowStockData.data);
+      setData({
+        overview: overview.data,
+        salesByPeriod: salesByPeriod.data,
+        orderStatus: orderStatus.data,
+        topProducts: topProducts.data,
+        salesByCategory: salesByCategory.data,
+        paymentMetrics: paymentMetrics.data
+      });
     } catch (error) {
       toast({
         title: "Erro ao carregar dados",
@@ -113,74 +112,92 @@ function Dashboard() {
   return (
     <AdminLayout>
       <Box p={4}>
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={6} mb={8}>
-          <Stat as={Card}>
+        {/* Estatísticas Principais */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} mb={8}>
+          <Card>
             <CardBody>
-              <StatLabel>Total de Vendas</StatLabel>
-              <StatNumber>{formatPrice(overview?.totalSales || 0)}</StatNumber>
-              <StatHelpText>{overview?.totalOrders} pedidos</StatHelpText>
+              <Stat>
+                <StatLabel>Vendas do Mês</StatLabel>
+                <StatNumber>{formatPrice(data.overview?.sales.currentMonth || 0)}</StatNumber>
+                <StatHelpText>
+                  <StatArrow 
+                    type={data.overview?.sales.growth > 0 ? 'increase' : 'decrease'} 
+                  />
+                  {data.overview?.sales.growth.toFixed(1)}% em relação ao mês anterior
+                </StatHelpText>
+              </Stat>
             </CardBody>
-          </Stat>
+          </Card>
 
-          <Stat as={Card}>
+          <Card>
             <CardBody>
-              <StatLabel>Vendas Hoje</StatLabel>
-              <StatNumber>{overview?.todayOrders || 0}</StatNumber>
-              <StatHelpText>pedidos</StatHelpText>
+              <Stat>
+                <StatLabel>Pedidos Hoje</StatLabel>
+                <StatNumber>{data.overview?.orders.today || 0}</StatNumber>
+                <StatHelpText>
+                  {data.overview?.orders.awaitingShipment || 0} aguardando envio
+                </StatHelpText>
+                <StatHelpText>
+                  {data.overview?.orders.awaitingPayment || 0} aguardando pagamento
+                </StatHelpText>
+              </Stat>
             </CardBody>
-          </Stat>
+          </Card>
 
-          <Stat as={Card}>
+          <Card>
             <CardBody>
-              <StatLabel>Produtos Cadastrados</StatLabel>
-              <StatNumber>{overview?.totalProducts || 0}</StatNumber>
-              <StatHelpText>{overview?.lowStockProducts} com estoque baixo</StatHelpText>
+              <Stat>
+                <StatLabel>Produtos</StatLabel>
+                <StatNumber>{data.overview?.products.total || 0}</StatNumber>
+                <StatHelpText>
+                  {data.overview?.products.lowStock || 0} com estoque baixo
+                </StatHelpText>
+                <StatHelpText>
+                  {data.overview?.products.inactive || 0} inativos
+                </StatHelpText>
+              </Stat>
             </CardBody>
-          </Stat>
-
-          <Stat as={Card}>
-            <CardBody>
-              <StatLabel>Ticket Médio</StatLabel>
-              <StatNumber>
-                {formatPrice(overview?.totalSales / overview?.totalOrders || 0)}
-              </StatNumber>
-            </CardBody>
-          </Stat>
+          </Card>
         </SimpleGrid>
 
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
-        <Card>
-          <CardHeader>
-            <Heading size="md">Vendas dos Últimos 30 Dias</Heading>
-          </CardHeader>
-          <CardBody>
-            <Box height="300px">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={salesData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="date"
-                    tickFormatter={(value) => value}
-                  />
-                  <YAxis 
-                    tickFormatter={(value) => formatPrice(value)}
-                  />
-                  <Tooltip 
-                    formatter={(value) => formatPrice(value)}
-                    labelFormatter={(label) => `Data: ${label}`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="totalAmount" 
-                    stroke="#3182ce"
-                    name="Vendas"
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </Box>
-          </CardBody>
-        </Card>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} mb={6}>
+          {/* Gráfico de Vendas */}
+          <Card>
+            <CardHeader>
+              <Heading size="md">Vendas dos Últimos 30 Dias</Heading>
+            </CardHeader>
+            <CardBody>
+              <Box height="300px">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={data.salesByPeriod}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis 
+                      dataKey="date"
+                      tickFormatter={(value) => {
+                        const date = new Date(value);
+                        return `${date.getDate()}/${date.getMonth() + 1}`;
+                      }}
+                    />
+                    <YAxis 
+                      tickFormatter={(value) => formatPrice(value)}
+                    />
+                    <Tooltip 
+                      formatter={(value) => formatPrice(value)}
+                      labelFormatter={(value) => new Date(value).toLocaleDateString()}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="totalAmount" 
+                      stroke="#3182ce"
+                      name="Vendas"
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+            </CardBody>
+          </Card>
 
+          {/* Status dos Pedidos */}
           <Card>
             <CardHeader>
               <Heading size="md">Status dos Pedidos</Heading>
@@ -190,35 +207,91 @@ function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={orderStatus}
+                      data={data.orderStatus}
                       dataKey="count"
                       nameKey="status"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
-                      label={({name, percent}) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      outerRadius={80}
+                      label={({name, percent}) => 
+                        `${name} (${(percent * 100).toFixed(0)}%)`
+                      }
                     >
-                      {orderStatus.map((entry, index) => (
+                      {data.orderStatus.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
-                    <Legend />
                     <Tooltip />
+                    <Legend />
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
             </CardBody>
           </Card>
+        </SimpleGrid>
 
-          <Card gridColumn={{ base: 'auto', lg: 'span 2' }}> {/* Este Card ocupará duas colunas */}
+        {/* Alertas de Estoque */}
+        {data.overview?.products.lowStock > 0 ? (
+          <Card mb={6}>
             <CardHeader>
               <Heading size="md">Alertas de Estoque</Heading>
             </CardHeader>
             <CardBody>
-              <StockAlerts products={lowStockProducts} />
+              <Alert status="warning">
+                <AlertIcon />
+                <AlertTitle>
+                  {data.overview.products.lowStock} produtos com estoque baixo
+                </AlertTitle>
+              </Alert>
             </CardBody>
           </Card>
+        ) : (
+          <Card mb={6}>
+            <CardHeader>
+              <Heading size="md">Alertas de Estoque</Heading>
+            </CardHeader>
+            <CardBody>
+              <Alert status="success">
+                <AlertIcon />
+                <AlertTitle>
+                  Todos os produtos estão com estoque adequado
+                </AlertTitle>
+              </Alert>
+            </CardBody>
+          </Card>
+        )}
 
+        {/* Produtos Mais Vendidos */}
+        <Card mb={6}>
+          <CardHeader>
+            <Heading size="md">Produtos Mais Vendidos</Heading>
+          </CardHeader>
+          <CardBody>
+            <Table variant="simple">
+              <Thead>
+                <Tr>
+                  <Th>Produto</Th>
+                  <Th isNumeric>Qtd. Vendida</Th>
+                  <Th isNumeric>Total</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {data.topProducts.map((item, index) => (
+                  <Tr key={index}>
+                    <Td>{item.product?.name}</Td>
+                    <Td isNumeric>{item.quantity}</Td>
+                    <Td isNumeric>
+                      {formatPrice(item.quantity * (item.product?.price || 0))}
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+
+        {/* Vendas por Categoria e Métricas de Pagamento */}
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
           <Card>
             <CardHeader>
               <Heading size="md">Vendas por Categoria</Heading>
@@ -228,28 +301,22 @@ function Dashboard() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={categoryData}
+                      data={data.salesByCategory}
                       dataKey="value"
                       nameKey="name"
                       cx="50%"
                       cy="50%"
-                      outerRadius={100}
+                      outerRadius={80}
                       label={({name, percent}) => 
                         `${name} (${(percent * 100).toFixed(0)}%)`
                       }
                     >
-                      {categoryData.map((entry, index) => (
-                        <Cell 
-                          key={`cell-${index}`} 
-                          fill={entry.color || `#${Math.floor(Math.random()*16777215).toString(16)}`} 
-                        />
+                      {data.salesByCategory.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
+                    <Tooltip />
                     <Legend />
-                    <Tooltip 
-                      formatter={(value) => `${value} unidades`}
-                      labelFormatter={(label) => `Categoria: ${label}`}
-                    />
                   </PieChart>
                 </ResponsiveContainer>
               </Box>
@@ -258,34 +325,54 @@ function Dashboard() {
 
           <Card>
             <CardHeader>
-              <Heading size="md">Produtos Mais Vendidos</Heading>
-            </CardHeader>
-            <CardBody>
-              <Table variant="simple">
-                <Thead>
-                  <Tr>
-                    <Th>Produto</Th>
-                    <Th isNumeric>Qtd. Vendida</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {topProducts.map((item, index) => (
-                    <Tr key={index}>
-                      <Td>{item.product?.name}</Td>
-                      <Td isNumeric>{item.quantity}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </CardBody>
-          </Card>
-
-          <Card gridColumn={{ base: 'auto', lg: 'span 2' }}>
-            <CardHeader>
               <Heading size="md">Métricas de Pagamento</Heading>
             </CardHeader>
             <CardBody>
-              <PaymentMetrics data={paymentMetrics} />
+              <Stack spacing={4}>
+                {/* Por Método */}
+                <Box>
+                  <Text fontWeight="medium" mb={2}>Por Método de Pagamento</Text>
+                  <Table size="sm" variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Método</Th>
+                        <Th isNumeric>Total</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {data.paymentMetrics?.byMethod.map((method, index) => (
+                        <Tr key={index}>
+                          <Td>{method.name}</Td>
+                          <Td isNumeric>{formatPrice(method.total)}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
+
+                {/* Por Status */}
+                <Box>
+                  <Text fontWeight="medium" mb={2}>Por Status</Text>
+                  <Table size="sm" variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Status</Th>
+                        <Th isNumeric>Total</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {data.paymentMetrics?.byStatus.map((status, index) => (
+                        <Tr key={index}>
+                          <Td>
+                            <Badge colorScheme={status.color}>{status.name}</Badge>
+                          </Td>
+                          <Td isNumeric>{formatPrice(status.total)}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                </Box>
+              </Stack>
             </CardBody>
           </Card>
         </SimpleGrid>

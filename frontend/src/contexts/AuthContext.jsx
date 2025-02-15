@@ -8,98 +8,140 @@ const AuthContext = createContext({});
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('@GamerShop:token');
-    const savedUser = localStorage.getItem('@GamerShop:user');
+    try {
+      const token = sessionStorage.getItem('@GamerShop:token');
+      const savedUser = sessionStorage.getItem('@GamerShop:user');
 
-    if (token && savedUser) {
-      setUser(JSON.parse(savedUser));
-      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      if (token && savedUser) {
+        setUser(JSON.parse(savedUser));
+        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      }
+    } catch (error) {
+      console.error('Erro ao carregar dados do usuário:', error);
+      sessionStorage.removeItem('@GamerShop:token');
+      sessionStorage.removeItem('@GamerShop:user');
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   }, []);
 
   const register = async (name, email, password) => {
     try {
+      console.log('Iniciando registro:', { name, email });
       const response = await authService.register(name, email, password);
       
-      localStorage.setItem('@GamerShop:token', response.token);
-      localStorage.setItem('@GamerShop:user', JSON.stringify(response.user));
+      if (!response || !response.token || !response.user) {
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      sessionStorage.setItem('@GamerShop:token', response.token);
+      sessionStorage.setItem('@GamerShop:user', JSON.stringify(response.user));
       api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
       setUser(response.user);
+      setError(null);
       
       return { success: true };
     } catch (error) {
+      console.error('Erro no registro:', error);
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Erro ao criar conta';
+      setError(errorMessage);
       return {
         success: false,
-        error: error.response?.data?.message || 'Erro ao criar conta'
+        error: errorMessage
       };
     }
   };
 
   const login = async (email, password) => {
     try {
+      console.log('Iniciando login:', { email });
       const response = await authService.login(email, password);
       
-      localStorage.setItem('@GamerShop:token', response.token);
-      localStorage.setItem('@GamerShop:user', JSON.stringify(response.user));
+      if (!response || !response.token || !response.user) {
+        console.error('Resposta inválida do servidor:', response);
+        throw new Error('Resposta inválida do servidor');
+      }
+
+      console.log('Login bem-sucedido:', { user: response.user });
+      sessionStorage.setItem('@GamerShop:token', response.token);
+      sessionStorage.setItem('@GamerShop:user', JSON.stringify(response.user));
       api.defaults.headers.common['Authorization'] = `Bearer ${response.token}`;
       setUser(response.user);
+      setError(null);
       
       return { success: true };
     } catch (error) {
+      console.error('Erro no login:', error);
+      console.error('Detalhes da resposta:', error.response);
+      const errorMessage = error.response?.data?.message || 
+                          error.message || 
+                          'Email ou senha incorretos';
+      setError(errorMessage);
       return {
         success: false,
-        error: error.response?.data?.message || 'Email ou senha incorretos'
+        error: errorMessage
       };
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('@GamerShop:token');
-    localStorage.removeItem('@GamerShop:user');
-    delete api.defaults.headers.common['Authorization'];
-    setUser(null);
+    try {
+      sessionStorage.removeItem('@GamerShop:token');
+      sessionStorage.removeItem('@GamerShop:user');
+      delete api.defaults.headers.common['Authorization'];
+      setUser(null);
+      setError(null);
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+    }
   };
 
   const checkTokenExpiration = () => {
-    const token = localStorage.getItem('@GamerShop:token');
-    if (token) {
-      try {
+    try {
+      const token = sessionStorage.getItem('@GamerShop:token');
+      if (token) {
         const payload = JSON.parse(atob(token.split('.')[1]));
         if (payload.exp * 1000 < Date.now()) {
+          console.log('Token expirado, fazendo logout');
           logout();
           return false;
         }
         return true;
-      } catch {
-        logout();
-        return false;
       }
+    } catch (error) {
+      console.error('Erro ao verificar expiração do token:', error);
+      logout();
     }
     return false;
   };
 
   useEffect(() => {
-    const interval = setInterval(checkTokenExpiration, 60000); // Checa a cada minuto
+    const interval = setInterval(checkTokenExpiration, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const value = {
+    user,
+    login,
+    register,
+    logout,
+    isAuthenticated: !!user,
+    checkTokenExpiration,
+    error,
+    clearError: () => setError(null)
+  };
 
   if (loading) {
     return null;
   }
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      login, 
-      register, 
-      logout,
-      isAuthenticated: !!user,
-      checkTokenExpiration 
-    }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );

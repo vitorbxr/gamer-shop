@@ -22,8 +22,8 @@ import Products from './pages/admin/Products'
 import Categories from './pages/admin/Categories'
 import Orders from './pages/admin/Orders'
 import Users from './pages/admin/Users'
-import Settings from './pages/admin/Settings' // Novo import
-
+import Settings from './pages/admin/Settings'
+import OrderSuccess from './pages/OrderSuccess';
 
 function App() {
   return (
@@ -79,6 +79,14 @@ function App() {
                   element={
                     <PrivateRoute>
                       <Wishlist />
+                    </PrivateRoute>
+                  } 
+                />
+                <Route 
+                  path="/orderSuccess" 
+                  element={
+                    <PrivateRoute>
+                      <OrderSuccess />
                     </PrivateRoute>
                   } 
                 />

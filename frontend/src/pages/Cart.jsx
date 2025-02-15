@@ -1,3 +1,4 @@
+// src/pages/Cart.jsx
 import React from 'react';
 import {
   Container,
@@ -31,6 +32,12 @@ function Cart() {
     });
   };
 
+  const handleCheckout = async () => {
+    // Aqui podemos adicionar validações antes de ir para o checkout
+    // Por exemplo, verificar estoque
+    navigate('/checkout');
+  };
+
   if (items.length === 0) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -53,11 +60,11 @@ function Cart() {
   return (
     <Container maxW="container.xl" py={8}>
       <Grid templateColumns={{ base: "1fr", lg: "2fr 1fr" }} gap={8}>
+        {/* Lista de Produtos */}
         <GridItem>
           <VStack spacing={6} align="stretch">
             <Heading size="lg">Carrinho de Compras</Heading>
             
-            {/* Lista de Produtos */}
             {items.map((item) => (
               <CartItem key={item.id} item={item} />
             ))}
@@ -83,7 +90,7 @@ function Cart() {
 
         {/* Resumo do Carrinho */}
         <GridItem>
-          <CartSummary />
+          <CartSummary onCheckout={handleCheckout} />
         </GridItem>
       </Grid>
     </Container>

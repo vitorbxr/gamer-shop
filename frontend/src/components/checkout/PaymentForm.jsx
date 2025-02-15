@@ -12,68 +12,172 @@ import {
   Box,
   Grid,
   GridItem,
-  Select,
-  useToast,
   Text,
-  Image,
-  Center
+  useToast,
+  FormErrorMessage,
+  Alert,
+  AlertIcon,
+  Code,
 } from '@chakra-ui/react';
+import { formatPrice } from '../../utils/format';
 
-function PaymentForm({ onSubmit, initialData }) {
-  const [paymentMethod, setPaymentMethod] = useState(initialData?.paymentMethod || 'credit');
-  const [formData, setFormData] = useState(initialData || {
+function PaymentForm({ onSubmit, total }) {
+  const [paymentMethod, setPaymentMethod] = useState('CREDIT_CARD');
+  const [formData, setFormData] = useState({
     cardNumber: '',
     cardName: '',
     expiryMonth: '',
     expiryYear: '',
     cvv: '',
-    installments: '1'
+    phoneNumber: '' // Para MB WAY
   });
+  const [errors, setErrors] = useState({});
+  const toast = useToast();
+
+  const validateCreditCard = () => {
+    const newErrors = {};
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth() + 1; // getMonth retorna 0-11
+
+    // Validação do número do cartão
+    if (!formData.cardNumber.replace(/\s/g, '').match(/^\d{16}$/)) {
+      newErrors.cardNumber = 'Número do cartão inválido';
+    }
+
+    // Validação do nome no cartão
+    if (!formData.cardName.trim()) {
+      newErrors.cardName = 'Nome no cartão é obrigatório';
+    }
+
+    // Validação do mês
+    const month = parseInt(formData.expiryMonth);
+    if (!month || month < 1 || month > 12) {
+      newErrors.expiryMonth = 'Mês inválido (1-12)';
+    }
+
+    // Validação do ano
+    const year = parseInt('20' + formData.expiryYear);
+    if (!year || year < currentYear || formData.expiryYear.length !== 2) {
+      newErrors.expiryYear = `Ano inválido (YY formato, não pode ser menor que ${currentYear.toString().slice(-2)})`;
+    }
+
+    // Verificação se o cartão está vencido
+    if (year === currentYear && month < currentMonth) {
+      newErrors.expiry = 'Cartão vencido';
+    }
+
+    // Validação do CVV
+    if (!formData.cvv.match(/^\d{3,4}$/)) {
+      newErrors.cvv = 'CVV inválido';
+    }
+
+    return newErrors;
+  };
+
+  const validateMBWay = () => {
+    const newErrors = {};
+    
+    if (!formData.phoneNumber.match(/^9\d{8}$/)) {
+      newErrors.phoneNumber = 'Número de telemóvel inválido';
+    }
+
+    return newErrors;
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit({ ...formData, paymentMethod });
-  };
+    let validationErrors = {};
 
-  const toast = useToast();
+    if (paymentMethod === 'CREDIT_CARD') {
+      validationErrors = validateCreditCard();
+    } else if (paymentMethod === 'MBWAY') {
+      validationErrors = validateMBWay();
+    }
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      toast({
+        title: 'Erro na validação',
+        description: 'Por favor, verifique os campos destacados.',
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    onSubmit({
+      paymentMethod,
+      ...formData
+    });
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'expiryMonth') {
+      // Limita o mês entre 1 e 12
+      const month = parseInt(value);
+      if (month > 12) return;
+    }
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
+    // Limpa o erro do campo quando o usuário começa a digitar
+    if (errors[name]) {
+      setErrors(prev => ({
+        ...prev,
+        [name]: undefined
+      }));
+    }
   };
 
-  // Gera os próximos 10 anos para o select
-  const years = Array.from({ length: 10 }, (_, i) => {
-    const year = new Date().getFullYear() + i;
-    return { value: year.toString(), label: year.toString() };
-  });
+  const formatCardNumber = (value) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = (matches && matches[0]) || '';
+    const parts = [];
 
-  // Meses para o select
-  const months = Array.from({ length: 12 }, (_, i) => {
-    const month = (i + 1).toString().padStart(2, '0');
-    return { value: month, label: month };
-  });
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
+    }
+  };
+
+  // Gera um número de referência Multibanco fictício
+  const generateMultibancoRef = () => {
+    const entity = '12345';
+    const reference = Math.random().toString().slice(2, 11);
+    return { entity, reference };
+  };
 
   const renderPaymentForm = () => {
     switch (paymentMethod) {
-      case 'credit':
+      case 'CREDIT_CARD':
         return (
           <VStack spacing={4}>
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={errors.cardNumber}>
               <FormLabel>Número do Cartão</FormLabel>
               <Input
                 name="cardNumber"
                 value={formData.cardNumber}
-                onChange={handleChange}
-                placeholder="0000 0000 0000 0000"
-                maxLength={16}
+                onChange={(e) => {
+                  const formatted = formatCardNumber(e.target.value);
+                  setFormData(prev => ({ ...prev, cardNumber: formatted }));
+                }}
+                placeholder="1234 5678 9012 3456"
+                maxLength={19}
               />
+              <FormErrorMessage>{errors.cardNumber}</FormErrorMessage>
             </FormControl>
 
-            <FormControl isRequired>
+            <FormControl isRequired isInvalid={errors.cardName}>
               <FormLabel>Nome no Cartão</FormLabel>
               <Input
                 name="cardName"
@@ -81,131 +185,105 @@ function PaymentForm({ onSubmit, initialData }) {
                 onChange={handleChange}
                 placeholder="Nome como está no cartão"
               />
+              <FormErrorMessage>{errors.cardName}</FormErrorMessage>
             </FormControl>
 
             <Grid templateColumns="repeat(12, 1fr)" gap={4}>
               <GridItem colSpan={{ base: 6, md: 3 }}>
-                <FormControl isRequired>
+                <FormControl isRequired isInvalid={errors.expiryMonth}>
                   <FormLabel>Mês</FormLabel>
-                  <Select
+                  <Input
                     name="expiryMonth"
                     value={formData.expiryMonth}
                     onChange={handleChange}
                     placeholder="MM"
-                  >
-                    {months.map(month => (
-                      <option key={month.value} value={month.value}>
-                        {month.label}
-                      </option>
-                    ))}
-                  </Select>
+                    maxLength={2}
+                  />
+                  <FormErrorMessage>{errors.expiryMonth}</FormErrorMessage>
                 </FormControl>
               </GridItem>
 
               <GridItem colSpan={{ base: 6, md: 3 }}>
-                <FormControl isRequired>
+                <FormControl isRequired isInvalid={errors.expiryYear}>
                   <FormLabel>Ano</FormLabel>
-                  <Select
+                  <Input
                     name="expiryYear"
                     value={formData.expiryYear}
                     onChange={handleChange}
-                    placeholder="AAAA"
-                  >
-                    {years.map(year => (
-                      <option key={year.value} value={year.value}>
-                        {year.label}
-                      </option>
-                    ))}
-                  </Select>
+                    placeholder="YY"
+                    maxLength={2}
+                  />
+                  <FormErrorMessage>{errors.expiryYear}</FormErrorMessage>
                 </FormControl>
               </GridItem>
 
               <GridItem colSpan={{ base: 6, md: 3 }}>
-                <FormControl isRequired>
+                <FormControl isRequired isInvalid={errors.cvv}>
                   <FormLabel>CVV</FormLabel>
                   <Input
                     name="cvv"
                     value={formData.cvv}
                     onChange={handleChange}
-                    placeholder="000"
+                    placeholder="123"
                     maxLength={4}
                     type="password"
                   />
-                </FormControl>
-              </GridItem>
-
-              <GridItem colSpan={{ base: 6, md: 3 }}>
-                <FormControl isRequired>
-                  <FormLabel>Parcelas</FormLabel>
-                  <Select
-                    name="installments"
-                    value={formData.installments}
-                    onChange={handleChange}
-                  >
-                    <option value="1">1x sem juros</option>
-                    <option value="2">2x sem juros</option>
-                    <option value="3">3x sem juros</option>
-                    <option value="4">4x sem juros</option>
-                    <option value="5">5x sem juros</option>
-                    <option value="6">6x sem juros</option>
-                  </Select>
+                  <FormErrorMessage>{errors.cvv}</FormErrorMessage>
                 </FormControl>
               </GridItem>
             </Grid>
+
+            {errors.expiry && (
+              <Alert status="error">
+                <AlertIcon />
+                {errors.expiry}
+              </Alert>
+            )}
           </VStack>
         );
 
-      case 'pix':
+      case 'MBWAY':
         return (
-          <VStack spacing={4} p={4} borderWidth="1px" borderRadius="lg">
-            <Text fontWeight="bold">QR Code PIX</Text>
-            <Box
-              width="200px"
-              height="200px"
-              bg="gray.100"
-              display="flex"
-              alignItems="center"
-              justifyContent="center"
-              borderRadius="md"
-            >
-              <Text fontSize="6xl">🔲</Text>
-            </Box>
-            <Text>Código PIX</Text>
-            <Input value="00020126580014BR.GOV.BCB.PIX0136exemplo" isReadOnly />
-            <Button
-              onClick={() => {
-                navigator.clipboard.writeText("00020126580014BR.GOV.BCB.PIX0136exemplo");
-                toast({
-                  title: "Código copiado!",
-                  status: "success",
-                  duration: 2000,
-                  isClosable: true,
-                });
-              }}
-            >
-              Copiar código
-            </Button>
+          <VStack spacing={4} align="stretch">
+            <FormControl isRequired isInvalid={errors.phoneNumber}>
+              <FormLabel>Número de Telemóvel</FormLabel>
+              <Input
+                name="phoneNumber"
+                value={formData.phoneNumber}
+                onChange={handleChange}
+                placeholder="912345678"
+                maxLength={9}
+              />
+              <FormErrorMessage>{errors.phoneNumber}</FormErrorMessage>
+            </FormControl>
+            <Alert status="info">
+              <AlertIcon />
+              <Text>
+                Após confirmar, você receberá uma notificação no seu telemóvel para aprovar o pagamento.
+              </Text>
+            </Alert>
           </VStack>
         );
 
-      case 'boleto':
+      case 'MULTIBANCO':
+        const { entity, reference } = generateMultibancoRef();
         return (
           <VStack spacing={4} p={4} borderWidth="1px" borderRadius="lg">
-            <Text>
-              O boleto será gerado após a confirmação do pedido.
-            </Text>
-            <Box
-              p={4}
-              borderWidth="1px"
-              borderRadius="md"
-              bg="gray.50"
-              width="100%"
-            >
-              <Text fontWeight="bold" mb={2}>Informações importantes:</Text>
-              <Text>• O boleto tem vencimento em 3 dias úteis</Text>
-              <Text>• O pedido será confirmado após o pagamento</Text>
-              <Text>• Você receberá o boleto por email</Text>
-            </Box>
+            <Alert status="info" variant="subtle">
+              <AlertIcon />
+              <VStack align="start" spacing={2}>
+                <Text>Dados para pagamento Multibanco:</Text>
+                <Box>
+                  <Text><strong>Entidade:</strong> <Code>{entity}</Code></Text>
+                  <Text><strong>Referência:</strong> <Code>{reference}</Code></Text>
+                  <Text><strong>Valor:</strong> <Code>{formatPrice(total)}</Code></Text>
+                </Box>
+                <Text fontSize="sm">
+                  O seu pedido será processado após a confirmação do pagamento.
+                  O pagamento deve ser feito em 24 horas.
+                </Text>
+              </VStack>
+            </Alert>
           </VStack>
         );
 
@@ -220,10 +298,10 @@ function PaymentForm({ onSubmit, initialData }) {
         <FormControl>
           <FormLabel>Método de Pagamento</FormLabel>
           <RadioGroup value={paymentMethod} onChange={setPaymentMethod}>
-            <Stack direction="row" spacing={4}>
-              <Radio value="credit">Cartão de Crédito</Radio>
-              <Radio value="pix">PIX</Radio>
-              <Radio value="boleto">Boleto</Radio>
+            <Stack direction={{ base: "column", md: "row" }} spacing={4}>
+              <Radio value="CREDIT_CARD">Cartão de Crédito/Débito</Radio>
+              <Radio value="MBWAY">MB WAY</Radio>
+              <Radio value="MULTIBANCO">Multibanco</Radio>
             </Stack>
           </RadioGroup>
         </FormControl>
@@ -237,7 +315,7 @@ function PaymentForm({ onSubmit, initialData }) {
           width="100%"
           mt={4}
         >
-          Continuar
+          Finalizar Pagamento
         </Button>
       </VStack>
     </form>

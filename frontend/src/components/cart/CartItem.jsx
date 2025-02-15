@@ -1,3 +1,4 @@
+// src/components/cart/CartItem.jsx
 import React from 'react';
 import {
   Box,
@@ -7,12 +8,13 @@ import {
   HStack,
   VStack,
   useToast,
-  Link
+  Link,
 } from '@chakra-ui/react';
 import { AddIcon, MinusIcon, DeleteIcon } from '@chakra-ui/icons';
 import { Link as RouterLink } from 'react-router-dom';
 import { useCart } from '../../contexts/CartContext';
 import { formatPrice } from '../../utils/format';
+import { getImageUrl } from '../../utils/imageUrl';
 
 const CartItem = ({ item }) => {
   const { updateQuantity, removeFromCart } = useCart();
@@ -57,11 +59,20 @@ const CartItem = ({ item }) => {
     >
       <HStack spacing={4} align="start">
         <Image
-          src={item.image || "/placeholder-image.jpg"}
+          src={getImageUrl(item.image)}
           alt={item.name}
           boxSize="100px"
           objectFit="cover"
           borderRadius="md"
+          fallback={
+            <Image
+              src="/placeholder-product.png"
+              alt="Placeholder"
+              boxSize="100px"
+              objectFit="cover"
+              borderRadius="md"
+            />
+          }
         />
         
         <VStack align="start" flex={1} spacing={1}>
