@@ -1,6 +1,7 @@
 // backend/src/controllers/orderController.js
 import { PrismaClient } from '@prisma/client';
 import { logService } from '../services/logService.js';
+import EmailService from '../services/emailService.js';
 
 const prisma = new PrismaClient();
 
@@ -15,6 +16,11 @@ export const orderController = {
   create: async (req, res) => {
     const { items, shipping, payment, couponId, discountAmount } = req.body;
     const userId = req.user.userId;
+    console.log('Recebendo requisição de criação de pedido:', req.body);
+    console.log('Usuário:', req.user);
+    console.log('Headers:', req.headers);
+    console.log('Usuario autenticado:', req.user);
+    console.log('Dados do pedido:', req.body);
 
     try {
       const order = await prisma.$transaction(async (tx) => {
@@ -26,6 +32,9 @@ export const orderController = {
             totalAmount: payment.amount,
             couponId: couponId || null,
             discountAmount: discountAmount || null
+          },
+          include: {
+            user: true // Incluir usuário para o email
           }
         });
 
@@ -87,8 +96,31 @@ export const orderController = {
           });
         }
 
-        return newOrder;
+        // Buscar o pedido completo com todas as relações para o email
+        const completeOrder = await tx.order.findUnique({
+          where: { id: newOrder.id },
+          include: {
+            items: {
+              include: {
+                product: true
+              }
+            },
+            shipping: true,
+            payment: true,
+            user: true
+          }
+        });
+
+        return completeOrder;
       });
+
+      // Enviar email de confirmação do pedido
+      try {
+        await EmailService.sendOrderConfirmation(order, order.user);
+      } catch (emailError) {
+        logService.error('Erro ao enviar email de confirmação', emailError);
+        // Não impedir a criação do pedido se o email falhar
+      }
 
       // Se o pagamento for Multibanco, retorna os dados de referência
       const response = {
@@ -263,8 +295,25 @@ export const orderController = {
     try {
       const order = await prisma.order.update({
         where: { id: parseInt(id) },
-        data: { status }
+        data: { status },
+        include: {
+          user: true,
+          items: {
+            include: {
+              product: true
+            }
+          },
+          shipping: true
+        }
       });
+
+      // Enviar email de atualização de status
+      try {
+        await EmailService.sendOrderStatusUpdate(order, order.user);
+      } catch (emailError) {
+        logService.error('Erro ao enviar email de atualização de status', emailError);
+        // Não impedir a atualização do status se o email falhar
+      }
 
       logService.info('Status do pedido atualizado', { orderId: order.id, status });
       res.json(order);
