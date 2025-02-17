@@ -2,8 +2,32 @@
 import api from './api';
 
 const create = async (orderData) => {
-  const response = await api.post('/orders', orderData);
-  return response.data;
+  try {
+    // Busca dados do cupom do localStorage
+    const appliedCoupon = localStorage.getItem('appliedCoupon');
+    
+    if (appliedCoupon) {
+      const couponData = JSON.parse(appliedCoupon);
+      // Adiciona dados do cupom ao orderData
+      orderData = {
+        ...orderData,
+        couponId: couponData.id,
+        discountAmount: couponData.discount
+      };
+    }
+
+    // Cria o pedido
+    const response = await api.post('/orders', orderData);
+
+    // Limpa o cupom do localStorage após criar o pedido com sucesso
+    if (appliedCoupon) {
+      localStorage.removeItem('appliedCoupon');
+    }
+
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
 };
 
 const getAll = async () => {

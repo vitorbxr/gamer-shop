@@ -64,6 +64,19 @@ function Checkout() {
     setIsSubmitting(true);
 
     try {
+      // Busca dados do cupom do localStorage
+      const appliedCoupon = localStorage.getItem('appliedCoupon');
+      console.log('Cupom encontrado no checkout:', appliedCoupon);
+      
+      const couponData = appliedCoupon ? JSON.parse(appliedCoupon) : null;
+      
+      // Calcula o valor do frete
+      const shippingCost = deliveryData.shippingMethod === 'CTT_EXPRESS' ? 10.00 : 5.00;
+      
+      // Calcula o total com desconto
+      const discount = couponData ? couponData.discount : 0;
+      const finalTotal = total + shippingCost - discount;
+
       // Prepara os dados do pedido
       const orderData = {
         items: items.map(item => ({
@@ -73,15 +86,23 @@ function Checkout() {
         })),
         shipping: {
           ...deliveryData,
-          cost: deliveryData.shippingMethod === 'CTT_EXPRESS' ? 10.00 : 5.00
+          cost: shippingCost
         },
         payment: {
           method: paymentData.paymentMethod,
-          amount: total + (deliveryData.shippingMethod === 'CTT_EXPRESS' ? 10.00 : 5.00),
+          amount: finalTotal, // Usa o total com desconto
           currency: 'EUR',
           ...paymentData
         }
       };
+
+      // Adiciona dados do cupom se existir
+      if (couponData) {
+        orderData.couponId = couponData.id;
+        orderData.discountAmount = couponData.discount;
+      }
+
+      console.log('Dados do pedido sendo enviados:', orderData);
 
       // Usa o orderService ao invés de chamar a API diretamente
       const response = await orderService.create(orderData);
@@ -89,7 +110,7 @@ function Checkout() {
       // Prepara dados para a página de sucesso
       const successData = {
         orderId: response.orderId,
-        total: orderData.payment.amount,
+        total: finalTotal,
         paymentMethod: paymentData.paymentMethod
       };
 
@@ -99,8 +120,9 @@ function Checkout() {
         successData.reference = response.reference;
       }
 
-      // Limpa o carrinho
+      // Limpa o carrinho e o cupom
       clearCart();
+      localStorage.removeItem('appliedCoupon');
 
       // Redireciona para a página de sucesso
       navigate('/orderSuccess', { 

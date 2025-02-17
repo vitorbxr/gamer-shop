@@ -21,6 +21,7 @@ const generateToken = (user) => {
 export const authController = {
   login: async (req, res) => {
     try {
+      console.log('Dados recebidos:', req.body);
       const { email, password } = req.body;
       console.log('Tentativa de login:', { email });
       

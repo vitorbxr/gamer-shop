@@ -15,9 +15,15 @@ import {
 } from '@chakra-ui/react';
 import { formatPrice } from '../../utils/format';
 
-const OrderSummary = ({ items, total, deliveryData, paymentData, onConfirm }) => {
+const OrderSummary = ({ items, total, deliveryData, paymentData, onConfirm, isSubmitting }) => {
   const shippingCost = deliveryData?.shippingMethod === 'CTT_EXPRESS' ? 10.00 : 5.00;
-  const finalTotal = total + shippingCost;
+  
+  // Busca informações do cupom do localStorage
+  const appliedCoupon = localStorage.getItem('appliedCoupon');
+  const couponData = appliedCoupon ? JSON.parse(appliedCoupon) : null;
+  const discount = couponData ? couponData.discount : 0;
+  
+  const finalTotal = total + shippingCost - discount;
 
   const formatPaymentMethod = (method) => {
     switch (method) {
@@ -100,6 +106,13 @@ const OrderSummary = ({ items, total, deliveryData, paymentData, onConfirm }) =>
             <Text>Frete</Text>
             <Text>{formatPrice(shippingCost)}</Text>
           </HStack>
+
+          {couponData && (
+            <HStack justify="space-between" color="green.600">
+              <Text>Desconto ({couponData.code})</Text>
+              <Text>- {formatPrice(discount)}</Text>
+            </HStack>
+          )}
           
           <Divider my={2} />
           
@@ -114,6 +127,8 @@ const OrderSummary = ({ items, total, deliveryData, paymentData, onConfirm }) =>
         colorScheme="green"
         size="lg"
         onClick={onConfirm}
+        isLoading={isSubmitting}
+        loadingText="Processando..."
       >
         Confirmar e Finalizar Pedido
       </Button>

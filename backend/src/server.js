@@ -14,6 +14,8 @@ import productRoutes from './routes/productRoutes.js';
 import imageRoutes from './routes/imageRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
+import couponRoutes from './routes/couponRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -46,6 +48,8 @@ app.use('/api/products', productRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/coupons', couponRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Handler para rotas não encontradas
 app.use((req, res) => {

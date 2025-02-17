@@ -13,11 +13,10 @@ const generateMultibancoRef = () => {
 
 export const orderController = {
   create: async (req, res) => {
-    const { items, shipping, payment } = req.body;
-    const userId = req.user.userId; // Vem do middleware de autenticação
+    const { items, shipping, payment, couponId, discountAmount } = req.body;
+    const userId = req.user.userId;
 
     try {
-      // Inicia a transação
       const order = await prisma.$transaction(async (tx) => {
         // 1. Cria o pedido
         const newOrder = await tx.order.create({
@@ -25,6 +24,8 @@ export const orderController = {
             userId,
             status: 'PENDING',
             totalAmount: payment.amount,
+            couponId: couponId || null,
+            discountAmount: discountAmount || null
           }
         });
 
@@ -62,7 +63,6 @@ export const orderController = {
           currency: payment.currency
         };
 
-        // Adiciona campos específicos baseado no método de pagamento
         if (payment.method === 'CREDIT_CARD') {
           paymentData.lastDigits = payment.cardNumber.slice(-4);
         } else if (payment.method === 'MULTIBANCO') {
@@ -133,7 +133,8 @@ export const orderController = {
             }
           },
           shipping: true,
-          payment: true
+          payment: true,
+          coupon: true
         },
         orderBy: {
           createdAt: 'desc'
@@ -144,6 +145,67 @@ export const orderController = {
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error);
       logService.error('Erro ao buscar pedidos', error);
+      res.status(500).json({ message: 'Erro ao buscar pedidos' });
+    }
+  },
+
+  getUserOrders: async (req, res) => {
+    try {
+      const userId = req.user.userId;
+
+      // Primeiro, buscar todas as reviews do usuário
+      const userReviews = await prisma.review.findMany({
+        where: {
+          userId: userId
+        },
+        select: {
+          productId: true,
+          orderId: true
+        }
+      });
+
+      // Criar um Set para verificação rápida
+      const reviewedProducts = new Set(
+        userReviews.map(review => `${review.orderId}-${review.productId}`)
+      );
+
+      // Buscar os pedidos
+      const orders = await prisma.order.findMany({
+        where: {
+          userId: userId
+        },
+        include: {
+          items: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  image: true
+                }
+              }
+            }
+          },
+          shipping: true,
+          payment: true
+        },
+        orderBy: {
+          createdAt: 'desc'
+        }
+      });
+
+      // Adicionar informação de reviewed aos itens
+      const ordersWithReviewInfo = orders.map(order => ({
+        ...order,
+        items: order.items.map(item => ({
+          ...item,
+          reviewed: reviewedProducts.has(`${order.id}-${item.product.id}`)
+        }))
+      }));
+
+      res.json(ordersWithReviewInfo);
+    } catch (error) {
+      console.error('Erro ao buscar pedidos do usuário:', error);
       res.status(500).json({ message: 'Erro ao buscar pedidos' });
     }
   },
@@ -172,12 +234,18 @@ export const orderController = {
             }
           },
           shipping: true,
-          payment: true
+          payment: true,
+          coupon: true
         }
       });
 
       if (!order) {
         return res.status(404).json({ message: 'Pedido não encontrado' });
+      }
+
+      // Verifica se o usuário tem permissão para ver este pedido
+      if (order.userId !== req.user.userId && req.user.role !== 'ADMIN') {
+        return res.status(403).json({ message: 'Não autorizado' });
       }
 
       res.json(order);

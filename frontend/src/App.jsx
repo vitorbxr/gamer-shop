@@ -24,6 +24,7 @@ import Orders from './pages/admin/Orders'
 import Users from './pages/admin/Users'
 import Settings from './pages/admin/Settings'
 import OrderSuccess from './pages/OrderSuccess';
+import Coupons from './pages/admin/Coupons';
 
 function App() {
   return (
@@ -101,6 +102,7 @@ function App() {
                         <Route path="/products" element={<Products />} />
                         <Route path="/categories" element={<Categories />} />
                         <Route path="/orders" element={<Orders />} />
+                        <Route path="/coupons" element={<Coupons />} />
                         <Route path="/users" element={<Users />} />
                         <Route path="/settings" element={<Settings />} />
                       </Routes>

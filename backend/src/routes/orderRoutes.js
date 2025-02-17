@@ -7,6 +7,7 @@ const router = express.Router();
 
 router.post('/', auth, orderController.create);
 router.get('/', auth, admin, orderController.getAll);
+router.get('/user', auth, orderController.getUserOrders); // Nova rota
 router.get('/:id', auth, orderController.getById);
 router.patch('/:id/status', auth, admin, orderController.updateStatus);
 
