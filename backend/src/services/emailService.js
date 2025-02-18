@@ -106,6 +106,9 @@ export const emailTemplates = {
   orderStatusUpdate: (order, user) => {
     const statusInfo = getStatusMessage(order.status);
     const isDelivered = order.status === 'DELIVERED';
+    const isShipped = order.status === 'SHIPPED';
+    const trackingUrl = order.shipping?.trackingCode ? 
+      `https://www.ctt.pt/feapl_2/app/open/objectSearch/objectSearch.jspx?objects=${order.shipping.trackingCode}` : '';
 
     return {
       subject: `GamerShop - ${statusInfo.title} - Pedido #${order.id}`,
@@ -120,11 +123,24 @@ export const emailTemplates = {
             <div style="margin-top: 15px;">
               <strong>Pedido:</strong> #${order.id}<br>
               <strong>Status:</strong> ${order.status}
-              ${order.shipping?.trackingCode ? `
-                <br><strong>Código de Rastreio:</strong> ${order.shipping.trackingCode}
-              ` : ''}
             </div>
           </div>
+
+          ${isShipped && order.shipping?.trackingCode ? `
+            <div style="background-color: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <h3 style="color: #1976d2; margin-top: 0;">Rastreamento do Pedido</h3>
+              <p>Seu pedido foi enviado! Use o código abaixo para rastrear:</p>
+              <p style="background: #fff; padding: 10px; border-radius: 4px; border: 1px solid #1976d2;">
+                <strong>Código de Rastreio:</strong> ${order.shipping.trackingCode}
+              </p>
+              <p style="margin-top: 15px;">
+                <a href="${trackingUrl}" 
+                   style="display: inline-block; background-color: #1976d2; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+                  Rastrear no Site dos CTT
+                </a>
+              </p>
+            </div>
+          ` : ''}
 
           ${isDelivered ? `
             <div style="background-color: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">

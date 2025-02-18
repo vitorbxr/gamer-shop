@@ -14,6 +14,17 @@ import {
   Spinner,
   Text,
   Heading,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+  FormControl,
+  FormLabel,
+  Input,
+  Button,
 } from '@chakra-ui/react';
 import { ViewIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/admin/AdminLayout';
@@ -26,6 +37,9 @@ function Orders() {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [pendingStatusChange, setPendingStatusChange] = useState(null);
   const toast = useToast();
 
   useEffect(() => {
@@ -50,6 +64,13 @@ function Orders() {
   };
 
   const handleStatusChange = async (orderId, newStatus) => {
+    // Se o status for SHIPPED, abrir modal para código de rastreio
+    if (newStatus === 'SHIPPED') {
+      setPendingStatusChange({ orderId, status: newStatus });
+      setIsTrackingModalOpen(true);
+      return;
+    }
+
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
       loadOrders();
@@ -62,6 +83,49 @@ function Orders() {
       toast({
         title: 'Erro ao atualizar status',
         description: error.response?.data?.message,
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
+  const handleConfirmShipping = async () => {
+    if (!trackingNumber.trim()) {
+      toast({
+        title: 'Código de rastreio obrigatório',
+        description: 'Por favor, insira o código de rastreio para marcar como enviado.',
+        status: 'warning',
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      // Primeiro atualiza o código de rastreio
+      await api.post(`/orders/${pendingStatusChange.orderId}/tracking`, {
+        trackingNumber: trackingNumber
+      });
+
+      // Depois atualiza o status
+      await api.patch(`/orders/${pendingStatusChange.orderId}/status`, {
+        status: pendingStatusChange.status
+      });
+
+      loadOrders();
+      setIsTrackingModalOpen(false);
+      setTrackingNumber('');
+      setPendingStatusChange(null);
+
+      toast({
+        title: 'Pedido atualizado',
+        description: 'Status e código de rastreio atualizados com sucesso.',
+        status: 'success',
+        duration: 3000,
+      });
+    } catch (error) {
+      toast({
+        title: 'Erro ao atualizar pedido',
+        description: error.response?.data?.message || 'Ocorreu um erro ao atualizar o pedido',
         status: 'error',
         duration: 3000,
       });
@@ -171,6 +235,45 @@ function Orders() {
           order={selectedOrder}
           onUpdateStatus={handleStatusChange}
         />
+
+        {/* Modal para código de rastreio */}
+        <Modal 
+          isOpen={isTrackingModalOpen} 
+          onClose={() => {
+            setIsTrackingModalOpen(false);
+            setPendingStatusChange(null);
+            setTrackingNumber('');
+          }}
+        >
+          <ModalOverlay />
+          <ModalContent>
+            <ModalHeader>Adicionar Código de Rastreio</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <FormControl isRequired>
+                <FormLabel>Código de Rastreio CTT</FormLabel>
+                <Input
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Digite o código de rastreio"
+                />
+              </FormControl>
+            </ModalBody>
+
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} onClick={handleConfirmShipping}>
+                Confirmar
+              </Button>
+              <Button variant="ghost" onClick={() => {
+                setIsTrackingModalOpen(false);
+                setPendingStatusChange(null);
+                setTrackingNumber('');
+              }}>
+                Cancelar
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
       </Box>
     </AdminLayout>
   );

@@ -1,6 +1,13 @@
 // src/components/ratings/RatingForm.jsx
 import React, { useState } from 'react';
 import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
   VStack,
   HStack,
   Textarea,
@@ -10,8 +17,9 @@ import {
 } from '@chakra-ui/react';
 import { StarIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
+import api from '../../services/api';
 
-function RatingForm({ productId, onRatingSubmit }) {
+function RatingForm({ isOpen, onClose, productId, orderId, productName, onSuccess }) {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [hoveredRating, setHoveredRating] = useState(0);
@@ -44,27 +52,27 @@ function RatingForm({ productId, onRatingSubmit }) {
 
     setIsSubmitting(true);
     try {
-      await onRatingSubmit({
-        rating,
-        comment,
+      const response = await api.post('/reviews', {
         productId,
-        userId: user.id,
-        userName: user.name,
-        date: new Date().toISOString(),
+        orderId,
+        rating,
+        comment
       });
 
-      setRating(0);
-      setComment('');
-      
       toast({
         title: "Avaliação enviada",
         status: "success",
         duration: 3000,
       });
+
+      if (onSuccess) {
+        onSuccess(response.data);
+      }
+      onClose();
     } catch (error) {
       toast({
         title: "Erro ao enviar avaliação",
-        description: error.message,
+        description: error.response?.data?.message || "Ocorreu um erro ao enviar a avaliação",
         status: "error",
         duration: 3000,
       });
@@ -74,42 +82,56 @@ function RatingForm({ productId, onRatingSubmit }) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <VStack spacing={4} align="stretch">
-        <HStack spacing={2}>
-          {[1, 2, 3, 4, 5].map((value) => (
-            <Icon
-              key={value}
-              as={StarIcon}
-              w={6}
-              h={6}
-              cursor="pointer"
-              color={(hoveredRating || rating) >= value ? "yellow.400" : "gray.300"}
-              onMouseEnter={() => setHoveredRating(value)}
-              onMouseLeave={() => setHoveredRating(0)}
-              onClick={() => setRating(value)}
-            />
-          ))}
-        </HStack>
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <ModalOverlay />
+      <ModalContent>
+        <ModalHeader>Avaliar {productName}</ModalHeader>
+        <ModalCloseButton />
 
-        <Textarea
-          placeholder="Escreva sua avaliação..."
-          value={comment}
-          onChange={(e) => setComment(e.target.value)}
-          resize="vertical"
-          minH="100px"
-        />
+        <form onSubmit={handleSubmit}>
+          <ModalBody>
+            <VStack spacing={4}>
+              <HStack spacing={2} justify="center">
+                {[1, 2, 3, 4, 5].map((value) => (
+                  <Icon
+                    key={value}
+                    as={StarIcon}
+                    w={8}
+                    h={8}
+                    cursor="pointer"
+                    color={(hoveredRating || rating) >= value ? "yellow.400" : "gray.300"}
+                    onMouseEnter={() => setHoveredRating(value)}
+                    onMouseLeave={() => setHoveredRating(0)}
+                    onClick={() => setRating(value)}
+                  />
+                ))}
+              </HStack>
 
-        <Button
-          type="submit"
-          colorScheme="blue"
-          isLoading={isSubmitting}
-          isDisabled={!user}
-        >
-          Enviar Avaliação
-        </Button>
-      </VStack>
-    </form>
+              <Textarea
+                placeholder="Escreva sua avaliação..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                resize="vertical"
+                minH="100px"
+              />
+            </VStack>
+          </ModalBody>
+
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={onClose}>
+              Cancelar
+            </Button>
+            <Button
+              colorScheme="blue"
+              type="submit"
+              isLoading={isSubmitting}
+            >
+              Enviar Avaliação
+            </Button>
+          </ModalFooter>
+        </form>
+      </ModalContent>
+    </Modal>
   );
 }
 

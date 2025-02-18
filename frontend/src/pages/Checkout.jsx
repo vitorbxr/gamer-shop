@@ -1,5 +1,5 @@
 // src/pages/Checkout.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -19,6 +19,8 @@ import {
   useToast,
   Alert,
   AlertIcon,
+  Spinner,
+  Center,
 } from '@chakra-ui/react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../contexts/CartContext';
@@ -42,10 +44,21 @@ function Checkout() {
   const [deliveryData, setDeliveryData] = useState(null);
   const [paymentData, setPaymentData] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   const { items, total, clearCart } = useCart();
   const navigate = useNavigate();
   const toast = useToast();
+
+  useEffect(() => {
+    const token = sessionStorage.getItem('@GamerShop:token');
+    if (!token) {
+      navigate('/login?redirect=/checkout');
+      return;
+    }
+    setIsLoading(false);
+  }, [navigate]);
 
   const handleDeliverySubmit = (data) => {
     console.log('Dados de entrega:', data);
@@ -64,10 +77,10 @@ function Checkout() {
     setIsSubmitting(true);
 
     try {
+      console.log('Iniciando processo de confirmação do pedido');
+      
       // Busca dados do cupom do localStorage
       const appliedCoupon = localStorage.getItem('appliedCoupon');
-      console.log('Cupom encontrado no checkout:', appliedCoupon);
-      
       const couponData = appliedCoupon ? JSON.parse(appliedCoupon) : null;
       
       // Calcula o valor do frete
@@ -90,11 +103,17 @@ function Checkout() {
         },
         payment: {
           method: paymentData.paymentMethod,
-          amount: finalTotal, // Usa o total com desconto
-          currency: 'EUR',
-          ...paymentData
+          amount: finalTotal,
+          currency: 'EUR'
         }
       };
+
+      // Adiciona informações específicas de acordo com o método de pagamento
+      if (paymentData.paymentMethod === 'CREDIT_CARD') {
+        orderData.payment.cardNumber = paymentData.cardNumber;
+      } else if (paymentData.paymentMethod === 'MBWAY') {
+        orderData.payment.phoneNumber = paymentData.phoneNumber;
+      }
 
       // Adiciona dados do cupom se existir
       if (couponData) {
@@ -102,10 +121,24 @@ function Checkout() {
         orderData.discountAmount = couponData.discount;
       }
 
-      console.log('Dados do pedido sendo enviados:', orderData);
+      console.log('Enviando dados do pedido:', orderData);
 
-      // Usa o orderService ao invés de chamar a API diretamente
       const response = await orderService.create(orderData);
+
+      console.log('Resposta da criação do pedido:', response);
+
+      // Mostra mensagem de sucesso
+      toast({
+        title: 'Pedido realizado com sucesso!',
+        description: 'Você receberá um email de confirmação em breve.',
+        status: 'success',
+        duration: 5000,
+        isClosable: true,
+      });
+
+      // Limpa o carrinho e o cupom
+      clearCart();
+      localStorage.removeItem('appliedCoupon');
 
       // Prepara dados para a página de sucesso
       const successData = {
@@ -115,14 +148,10 @@ function Checkout() {
       };
 
       // Adiciona dados específicos para Multibanco se necessário
-      if (paymentData.paymentMethod === 'MULTIBANCO') {
+      if (paymentData.paymentMethod === 'MULTIBANCO' && response.entity && response.reference) {
         successData.entity = response.entity;
         successData.reference = response.reference;
       }
-
-      // Limpa o carrinho e o cupom
-      clearCart();
-      localStorage.removeItem('appliedCoupon');
 
       // Redireciona para a página de sucesso
       navigate('/orderSuccess', { 
@@ -144,6 +173,30 @@ function Checkout() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center h="200px">
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error">
+          <AlertIcon />
+          {error}
+        </Alert>
+        <Button mt={4} onClick={() => navigate('/cart')}>
+          Voltar ao Carrinho
+        </Button>
+      </Container>
+    );
+  }
+
   if (items.length === 0) {
     return (
       <Container maxW="container.xl" py={8}>
@@ -159,35 +212,41 @@ function Checkout() {
   }
 
   const renderStepContent = () => {
-    switch (activeStep) {
-      case 0:
-        return (
-          <DeliveryForm 
-            onSubmit={handleDeliverySubmit}
-            initialData={deliveryData}
-          />
-        );
-      case 1:
-        return (
-          <PaymentForm 
-            onSubmit={handlePaymentSubmit}
-            initialData={paymentData}
-            total={total}
-          />
-        );
-      case 2:
-        return (
-          <OrderSummary
-            deliveryData={deliveryData}
-            paymentData={paymentData}
-            items={items}
-            total={total}
-            onConfirm={handleConfirmOrder}
-            isSubmitting={isSubmitting}
-          />
-        );
-      default:
-        return null;
+    try {
+      switch (activeStep) {
+        case 0:
+          return (
+            <DeliveryForm 
+              onSubmit={handleDeliverySubmit}
+              initialData={deliveryData}
+            />
+          );
+        case 1:
+          return (
+            <PaymentForm 
+              onSubmit={handlePaymentSubmit}
+              initialData={paymentData}
+              total={total}
+            />
+          );
+        case 2:
+          return (
+            <OrderSummary
+              deliveryData={deliveryData}
+              paymentData={paymentData}
+              items={items}
+              total={total}
+              onConfirm={handleConfirmOrder}
+              isSubmitting={isSubmitting}
+            />
+          );
+        default:
+          return null;
+      }
+    } catch (error) {
+      console.error('Erro ao renderizar conteúdo:', error);
+      setError('Ocorreu um erro ao carregar o formulário. Por favor, tente novamente.');
+      return null;
     }
   };
 

@@ -1,5 +1,5 @@
 // src/pages/ProductDetail.jsx
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Container,
@@ -38,13 +38,14 @@ import RatingForm from '../components/ratings/RatingForm';
 import TextToList from '../components/TextToList';
 import { useProduct } from '../hooks/useProduct';
 import { getImageUrl } from '../utils/imageUrl';
+import api from '../services/api';
 
 function ProductDetail() {
   const { id } = useParams();
   const { product, loading, error } = useProduct(id);
-  console.log('Produto carregado:', product); // Adicione este log
   const [selectedImage, setSelectedImage] = useState(0);
   const [reviews, setReviews] = useState([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
   const toast = useToast();
   const { addToCart } = useCart();
   const { isInWishlist, addToWishlist, removeFromWishlist } = useWishlist();
@@ -60,6 +61,25 @@ function ProductDetail() {
   const inc = getIncrementButtonProps();
   const dec = getDecrementButtonProps();
   const input = getInputProps();
+
+  // Carrega as avaliações do produto
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        setReviewsLoading(true);
+        const response = await api.get(`/reviews/product/${id}`);
+        setReviews(response.data);
+      } catch (error) {
+        console.error('Erro ao carregar avaliações:', error);
+      } finally {
+        setReviewsLoading(false);
+      }
+    };
+
+    if (id) {
+      loadReviews();
+    }
+  }, [id]);
 
   if (loading) {
     return (
@@ -84,7 +104,6 @@ function ProductDetail() {
 
   const handleAddToCart = () => {
     const quantity = parseInt(value);
-    console.log('Tentando adicionar ao carrinho:', { product, quantity });
     addToCart(product, quantity);
     toast({
       title: "Produto adicionado ao carrinho",
@@ -94,13 +113,14 @@ function ProductDetail() {
     });
   };
 
-  const handleRatingSubmit = async (newReview) => {
-    setReviews(prev => [...prev, { ...newReview, id: prev.length + 1 }]);
+  const handleReviewSubmit = async (newReview) => {
+    try {
+      const response = await api.get(`/reviews/product/${id}`);
+      setReviews(response.data);
+    } catch (error) {
+      console.error('Erro ao atualizar avaliações:', error);
+    }
   };
-
-  const averageRating = reviews.length > 0 
-    ? reviews.reduce((acc, rev) => acc + rev.rating, 0) / reviews.length 
-    : 0;
 
   return (
     <Container maxW="container.xl" py={8}>
@@ -152,14 +172,14 @@ function ProductDetail() {
         {/* Informações do Produto */}
         <VStack align="stretch" spacing={6}>
           <Box>
-          <HStack spacing={2} mb={2}>
-            {product.isNew && <Badge colorScheme="green">Novo</Badge>}
-            {product.stock > 0 ? (
-              <Badge colorScheme="blue">Em Estoque ({product.stock} unidades)</Badge>
-            ) : (
-              <Badge colorScheme="red">Fora de Estoque</Badge>
-            )}
-          </HStack>
+            <HStack spacing={2} mb={2}>
+              {product.isNew && <Badge colorScheme="green">Novo</Badge>}
+              {product.stock > 0 ? (
+                <Badge colorScheme="blue">Em Estoque ({product.stock} unidades)</Badge>
+              ) : (
+                <Badge colorScheme="red">Fora de Estoque</Badge>
+              )}
+            </HStack>
 
             <HStack justify="space-between" align="start">
               <Heading size="lg" mb={2}>{product.name}</Heading>
@@ -183,7 +203,10 @@ function ProductDetail() {
             </HStack>
             
             <HStack spacing={4} mb={4}>
-              <Rating rating={averageRating} totalRatings={reviews.length} />
+              <Rating 
+                rating={product.avgRating || 0} 
+                totalRatings={product.totalReviews || 0} 
+              />
             </HStack>
 
             <Text fontSize="2xl" fontWeight="bold" color="brand.primary">
@@ -241,18 +264,19 @@ function ProductDetail() {
               <TabPanel>
                 <VStack spacing={6} align="stretch">
                   <Box>
-                    <Heading size="md" mb={4}>Adicionar Avaliação</Heading>
-                    <RatingForm 
-                      productId={product.id} 
-                      onRatingSubmit={handleRatingSubmit} 
-                    />
-                  </Box>
-
-                  <Divider />
-
-                  <Box>
                     <Heading size="md" mb={4}>Avaliações dos Clientes</Heading>
-                    <RatingsList reviews={reviews} />
+                    {reviewsLoading ? (
+                      <Center py={8}>
+                        <Spinner />
+                      </Center>
+                    ) : reviews.length > 0 ? (
+                      <RatingsList reviews={reviews} />
+                    ) : (
+                      <Alert status="info">
+                        <AlertIcon />
+                        Este produto ainda não possui avaliações.
+                      </Alert>
+                    )}
                   </Box>
                 </VStack>
               </TabPanel>

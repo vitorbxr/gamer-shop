@@ -1,4 +1,4 @@
-// Você pode criar um arquivo seed-orders.js na pasta prisma
+// prisma/seed-orders.js
 import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
@@ -15,11 +15,11 @@ async function seedOrders() {
 
     // Array com diferentes status para criar pedidos variados
     const orderStatuses = [
-      'pending',
-      'processing',
-      'shipped',
-      'delivered',
-      'cancelled'
+      'PENDING',
+      'PROCESSING',
+      'SHIPPED',
+      'DELIVERED',
+      'CANCELLED'
     ];
 
     // Criar pedidos com diferentes status
@@ -40,18 +40,21 @@ async function seedOrders() {
           },
           payment: {
             create: {
-              method: 'credit',
-              status: status === 'delivered' ? 'paid' : 'pending',
-              amount: 100 + Math.random() * 900
+              method: 'CREDIT_CARD',
+              status: status === 'DELIVERED' ? 'COMPLETED' : 'PENDING',
+              amount: 100 + Math.random() * 900,
+              currency: 'EUR'
             }
           },
           shipping: {
             create: {
+              method: 'CTT_NORMAL',
               address: 'Rua de Teste, 123',
-              city: 'São Paulo',
-              state: 'SP',
-              zipCode: '01234-567',
-              status: status,
+              city: 'Lisboa',
+              district: 'Lisboa',
+              postalCode: '1000-001',
+              country: 'Portugal',
+              status: status === 'DELIVERED' ? 'DELIVERED' : 'PENDING',
               cost: 25.00
             }
           }

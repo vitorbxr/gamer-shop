@@ -16,13 +16,11 @@ export const orderController = {
   create: async (req, res) => {
     const { items, shipping, payment, couponId, discountAmount } = req.body;
     const userId = req.user.userId;
-    console.log('Recebendo requisição de criação de pedido:', req.body);
-    console.log('Usuário:', req.user);
-    console.log('Headers:', req.headers);
-    console.log('Usuario autenticado:', req.user);
-    console.log('Dados do pedido:', req.body);
 
     try {
+      console.log('Recebendo requisição de criação de pedido:', req.body);
+      console.log('Usuário:', req.user);
+
       const order = await prisma.$transaction(async (tx) => {
         // 1. Cria o pedido
         const newOrder = await tx.order.create({
@@ -32,9 +30,6 @@ export const orderController = {
             totalAmount: payment.amount,
             couponId: couponId || null,
             discountAmount: discountAmount || null
-          },
-          include: {
-            user: true // Incluir usuário para o email
           }
         });
 
@@ -119,7 +114,6 @@ export const orderController = {
         await EmailService.sendOrderConfirmation(order, order.user);
       } catch (emailError) {
         logService.error('Erro ao enviar email de confirmação', emailError);
-        // Não impedir a criação do pedido se o email falhar
       }
 
       // Se o pagamento for Multibanco, retorna os dados de referência
@@ -307,12 +301,11 @@ export const orderController = {
         }
       });
 
-      // Enviar email de atualização de status
+      // Envia email de atualização de status
       try {
         await EmailService.sendOrderStatusUpdate(order, order.user);
       } catch (emailError) {
         logService.error('Erro ao enviar email de atualização de status', emailError);
-        // Não impedir a atualização do status se o email falhar
       }
 
       logService.info('Status do pedido atualizado', { orderId: order.id, status });
@@ -321,6 +314,79 @@ export const orderController = {
       console.error('Erro ao atualizar status do pedido:', error);
       logService.error('Erro ao atualizar status do pedido', error);
       res.status(500).json({ message: 'Erro ao atualizar status do pedido' });
+    }
+  },
+
+  updateTrackingNumber: async (req, res) => {
+    const { id } = req.params;
+    const { trackingNumber } = req.body;
+
+    try {
+      // Atualiza o pedido com o código de rastreio
+      const order = await prisma.order.update({
+        where: { id: parseInt(id) },
+        data: {
+          shipping: {
+            update: {
+              trackingCode: trackingNumber,
+              status: 'SHIPPED'
+            }
+          },
+          status: 'SHIPPED'
+        },
+        include: {
+          user: true,
+          items: {
+            include: {
+              product: true
+            }
+          },
+          shipping: true
+        }
+      });
+
+      // Envia email de atualização para o cliente
+      try {
+        await EmailService.sendOrderStatusUpdate(order, order.user);
+      } catch (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+      }
+
+      logService.info('Código de rastreio adicionado', { orderId: order.id, trackingNumber });
+      res.json(order);
+    } catch (error) {
+      console.error('Erro ao adicionar código de rastreio:', error);
+      logService.error('Erro ao adicionar código de rastreio', error);
+      res.status(500).json({ 
+        message: 'Erro ao adicionar código de rastreio'
+      });
+    }
+  },
+
+  getTrackingInfo: async (req, res) => {
+    const { id } = req.params;
+
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: parseInt(id) },
+        include: {
+          shipping: true
+        }
+      });
+
+      if (!order) {
+        return res.status(404).json({ message: 'Pedido não encontrado' });
+      }
+
+      if (!order.shipping?.trackingCode) {
+        return res.status(400).json({ message: 'Pedido sem código de rastreio' });
+      }
+
+      const trackingInfo = await trackingService.getTrackingInfo(order.shipping.trackingCode);
+      res.json(trackingInfo);
+    } catch (error) {
+      console.error('Erro ao obter informações de rastreio:', error);
+      res.status(500).json({ message: 'Erro ao obter informações de rastreio' });
     }
   }
 };

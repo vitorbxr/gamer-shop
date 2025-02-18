@@ -1,5 +1,5 @@
 // src/pages/OrderHistory.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   VStack,
@@ -12,75 +12,139 @@ import {
   HStack,
   Button,
   Divider,
+  useToast,
+  Spinner,
+  Center,
+  Alert,
+  AlertIcon,
+  useDisclosure,
+  Tooltip,
 } from '@chakra-ui/react';
+import { useNavigate } from 'react-router-dom';
 import { formatPrice } from '../utils/format.js';
-
-// Dados mockados para teste
-const mockOrders = [
-  {
-    id: 1,
-    date: "2024-02-01T10:00:00Z",
-    status: "delivered",
-    total: 2499.98,
-    items: [
-      {
-        id: 1,
-        name: "Mouse Gamer RGB Pro X",
-        price: 1299.99,
-        quantity: 1,
-        image: "/placeholder-image.jpg"
-      },
-      {
-        id: 2,
-        name: "Teclado Mecânico RGB",
-        price: 1199.99,
-        quantity: 1,
-        image: "/placeholder-image.jpg"
-      }
-    ],
-    shipping: {
-      address: "Rua Exemplo, 123",
-      city: "São Paulo",
-      state: "SP",
-      zipCode: "01234-567"
-    },
-    payment: {
-      method: "credit",
-      installments: 6
-    }
-  },
-  // Adicione mais pedidos mockados aqui
-];
-
-const getStatusColor = (status) => {
-  const statusMap = {
-    pending: "yellow",
-    processing: "blue",
-    shipped: "purple",
-    delivered: "green",
-    cancelled: "red"
-  };
-  return statusMap[status] || "gray";
-};
-
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: "Pendente",
-    processing: "Em processamento",
-    shipped: "Enviado",
-    delivered: "Entregue",
-    cancelled: "Cancelado"
-  };
-  return statusMap[status] || status;
-};
+import api from '../services/api';
+import RatingForm from '../components/ratings/RatingForm';
+import { getImageUrl } from '../utils/imageUrl';
+import { useAuth } from '../contexts/AuthContext';
 
 function OrderHistory() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { isAuthenticated, checkTokenExpiration } = useAuth();
+
+  useEffect(() => {
+    const init = async () => {
+      if (!isAuthenticated || !checkTokenExpiration()) {
+        navigate('/login');
+        return;
+      }
+      await loadOrders();
+    };
+
+    init();
+  }, [isAuthenticated, navigate]);
+
+  const loadOrders = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/orders/user');
+      setOrders(response.data);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos:', error);
+      toast({
+        title: 'Erro ao carregar pedidos',
+        description: error.response?.data?.message || 'Ocorreu um erro ao carregar seus pedidos',
+        status: 'error',
+        duration: 3000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleViewDetails = (orderId) => {
+    navigate(`/orders/${orderId}`);
+  };
+
+  const handleReviewProduct = (orderId, product) => {
+    setSelectedProduct({
+      orderId,
+      productId: product.id,
+      name: product.name
+    });
+    onOpen();
+  };
+
+  const handleReviewSubmitted = () => {
+    onClose();
+    loadOrders();
+    toast({
+      title: 'Avaliação enviada',
+      status: 'success',
+      duration: 3000,
+    });
+  };
+
+  const getStatusColor = (status) => {
+    const statusMap = {
+      PENDING: "yellow",
+      PROCESSING: "blue",
+      AWAITING_PAYMENT: "orange",
+      PAID: "green",
+      SHIPPED: "purple",
+      DELIVERED: "green",
+      CANCELLED: "red"
+    };
+    return statusMap[status] || "gray";
+  };
+
+  const getStatusText = (status) => {
+    const statusMap = {
+      PENDING: "Pendente",
+      PROCESSING: "Em processamento",
+      AWAITING_PAYMENT: "Aguardando pagamento",
+      PAID: "Pago",
+      SHIPPED: "Enviado",
+      DELIVERED: "Entregue",
+      CANCELLED: "Cancelado"
+    };
+    return statusMap[status] || status;
+  };
+
+  if (loading) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Center>
+          <Spinner size="xl" />
+        </Center>
+      </Container>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <VStack spacing={6} align="stretch">
+          <Heading size="lg">Meus Pedidos</Heading>
+          <Alert status="info">
+            <AlertIcon />
+            Você ainda não tem pedidos.
+          </Alert>
+        </VStack>
+      </Container>
+    );
+  }
+
   return (
     <Container maxW="container.xl" py={8}>
       <VStack spacing={8} align="stretch">
         <Heading size="lg">Meus Pedidos</Heading>
 
-        {mockOrders.map((order) => (
+        {orders.map((order) => (
           <Box
             key={order.id}
             p={6}
@@ -98,7 +162,7 @@ function OrderHistory() {
                 <Box>
                   <Text color="gray.500">Data</Text>
                   <Text fontWeight="bold">
-                    {new Date(order.date).toLocaleDateString()}
+                    {new Date(order.createdAt).toLocaleDateString()}
                   </Text>
                 </Box>
                 <Box>
@@ -110,7 +174,7 @@ function OrderHistory() {
                 <Box>
                   <Text color="gray.500">Total</Text>
                   <Text fontWeight="bold" fontSize="lg">
-                    {formatPrice(order.total)}
+                    {formatPrice(order.totalAmount)}
                   </Text>
                 </Box>
               </Grid>
@@ -127,14 +191,15 @@ function OrderHistory() {
                     alignItems="center"
                   >
                     <Image
-                      src={item.image}
-                      alt={item.name}
+                      src={getImageUrl(item.product.image)}
+                      alt={item.product.name}
                       borderRadius="md"
                       objectFit="cover"
                       boxSize="100px"
+                      fallback={<Image src="/placeholder-product.png" alt="Placeholder" />}
                     />
                     <Box>
-                      <Text fontWeight="bold">{item.name}</Text>
+                      <Text fontWeight="bold">{item.product.name}</Text>
                       <Text color="gray.500">
                         Quantidade: {item.quantity}
                       </Text>
@@ -152,43 +217,69 @@ function OrderHistory() {
               <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={6}>
                 <Box>
                   <Text fontWeight="bold" mb={2}>Endereço de Entrega</Text>
-                  <Text>{order.shipping.address}</Text>
-                  <Text>{order.shipping.city} - {order.shipping.state}</Text>
-                  <Text>CEP: {order.shipping.zipCode}</Text>
+                  <Text>{order.shipping?.address}</Text>
+                  <Text>{order.shipping?.city} - {order.shipping?.district}</Text>
+                  <Text>CEP: {order.shipping?.postalCode}</Text>
                 </Box>
                 <Box>
                   <Text fontWeight="bold" mb={2}>Pagamento</Text>
                   <Text>
-                    {order.payment.method === 'credit' 
-                      ? `Cartão de Crédito - ${order.payment.installments}x sem juros`
-                      : order.payment.method === 'pix'
-                      ? 'PIX'
-                      : 'Boleto Bancário'
+                    {order.payment?.method === 'CREDIT_CARD' 
+                      ? `Cartão de Crédito - Final ${order.payment?.lastDigits}`
+                      : order.payment?.method === 'MULTIBANCO'
+                      ? 'Multibanco'
+                      : order.payment?.method
                     }
                   </Text>
                 </Box>
               </Grid>
 
               <HStack justify="flex-end">
-                <Button colorScheme="blue" variant="outline">
+                <Button 
+                  colorScheme="blue" 
+                  variant="outline"
+                  onClick={() => handleViewDetails(order.id)}
+                >
                   Ver Detalhes
                 </Button>
-                {order.status === 'delivered' && (
-                  <Button colorScheme="green">
-                    Avaliar Produtos
-                  </Button>
-                )}
+                {order.status === 'DELIVERED' && order.items.map((item) => (
+                  <Tooltip 
+                    key={item.id}
+                    hasArrow
+                    label={item.reviewed ? "Você já avaliou este produto" : "Avaliar este produto"}
+                    isDisabled={!item.reviewed}
+                    shouldWrapChildren
+                  >
+                    <Button 
+                      colorScheme={item.reviewed ? "gray" : "green"}
+                      isDisabled={item.reviewed}
+                      onClick={() => !item.reviewed && handleReviewProduct(order.id, item.product)}
+                      _disabled={{
+                        opacity: 0.7,
+                        cursor: 'not-allowed'
+                      }}
+                    >
+                      {item.reviewed ? "Produto Avaliado" : "Avaliar Produto"}
+                    </Button>
+                  </Tooltip>
+                ))}
               </HStack>
             </VStack>
           </Box>
         ))}
-
-        {mockOrders.length === 0 && (
-          <Box textAlign="center" py={8}>
-            <Text>Nenhum pedido encontrado.</Text>
-          </Box>
-        )}
       </VStack>
+
+      {/* Modal de Avaliação */}
+      {selectedProduct && (
+        <RatingForm
+          isOpen={isOpen}
+          onClose={onClose}
+          productId={selectedProduct.productId}
+          orderId={selectedProduct.orderId}
+          productName={selectedProduct.name}
+          onSuccess={handleReviewSubmitted}
+        />
+      )}
     </Container>
   );
 }
