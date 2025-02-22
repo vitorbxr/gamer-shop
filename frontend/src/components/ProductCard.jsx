@@ -32,7 +32,7 @@ function ProductCard({ product }) {
   };
 
   const handleAddToCart = async (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Previne a navegação para a página do produto
     try {
       await addToCart(product, 1);
       toast({
@@ -53,11 +53,23 @@ function ProductCard({ product }) {
   };
 
   const handleToggleWishlist = (e) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Previne a navegação para a página do produto
     if (isFavorite) {
       removeFromWishlist(product.id);
+      toast({
+        title: "Produto removido dos favoritos",
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
     } else {
       addToWishlist(product);
+      toast({
+        title: "Produto adicionado aos favoritos",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
     }
   };
 
@@ -80,11 +92,11 @@ function ProductCard({ product }) {
     >
       <Tooltip label={isFavorite ? "Remover dos favoritos" : "Adicionar aos favoritos"}>
         <IconButton
-          icon={isFavorite ? <StarIcon fill="red.500" /> : <StarIcon />}
+          icon={<StarIcon color={isFavorite ? "yellow.400" : "gray.300"} />}
           position="absolute"
           top={2}
           right={2}
-          colorScheme={isFavorite ? "red" : "gray"}
+          colorScheme={isFavorite ? "yellow" : "gray"}
           variant="ghost"
           onClick={handleToggleWishlist}
           aria-label="Favoritar produto"
@@ -143,7 +155,7 @@ function ProductCard({ product }) {
 
           <Button
             width="full"
-            colorScheme="blue"
+            colorScheme="green"
             isDisabled={!(product.stock > 0)}
             onClick={handleAddToCart}
           >

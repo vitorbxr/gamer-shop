@@ -3,37 +3,147 @@ const prisma = new PrismaClient();
 
 const getAll = async (req, res) => {
   try {
-    const { page = 1, limit = 12 } = req.query;
+    console.log("====== DEBUG BUSCA DE PRODUTOS ======");
+    console.log("Query params completos:", req.query);
+    
+    // Extrair parâmetros com valores padrão seguros
+    const page = parseInt(req.query.page || 1);
+    const limit = parseInt(req.query.limit || 12);
+    const search = req.query.search || '';
+    const category = req.query.category || '';
+    const brand = req.query.brand || '';
+    const minPrice = parseFloat(req.query.minPrice || 0);
+    const maxPrice = parseFloat(req.query.maxPrice || 5000);
+    const sort = req.query.sort || '';
+    
+    console.log("Parâmetros processados:", {
+      page, limit, search, category, brand, minPrice, maxPrice, sort
+    });
+    
     const skip = (page - 1) * limit;
-
-    // Busca produtos com paginação
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
-        skip: Number(skip),
-        take: Number(limit),
+    
+    // Construir filtros básicos
+    let where = {};
+    
+    try {
+      // Adicionar filtro de texto para busca
+      if (search && search.trim() !== '') {
+        console.log("Adicionando filtro de busca para:", search);
+        where.OR = [
+          { name: { contains: search } }
+          // Remover filtro de descrição temporariamente para debug
+          // { description: { contains: search } }
+        ];
+      }
+      
+      // Filtro de categorias
+      if (category && category.trim() !== '') {
+        try {
+          const categoryIds = category.split(',').map(id => parseInt(id, 10));
+          console.log("Filtro de categorias:", categoryIds);
+          
+          if (categoryIds.length === 1) {
+            where.categoryId = categoryIds[0];
+          } else if (categoryIds.length > 1) {
+            where.categoryId = { in: categoryIds };
+          }
+        } catch (error) {
+          console.error("Erro ao processar categorias:", error);
+        }
+      }
+      
+      // Filtro de marcas
+      if (brand && brand.trim() !== '') {
+        try {
+          const brandIds = brand.split(',').map(id => parseInt(id, 10));
+          console.log("Filtro de marcas:", brandIds);
+          
+          if (brandIds.length === 1) {
+            where.brandId = brandIds[0];
+          } else if (brandIds.length > 1) {
+            where.brandId = { in: brandIds };
+          }
+        } catch (error) {
+          console.error("Erro ao processar marcas:", error);
+        }
+      }
+      
+      // Filtro de preço
+      where.price = {
+        gte: minPrice,
+        lte: maxPrice
+      };
+      
+      console.log("Filtro WHERE final:", JSON.stringify(where, null, 2));
+      
+      // Configurar ordenação
+      let orderBy = { createdAt: 'desc' };
+      
+      if (sort) {
+        switch (sort) {
+          case 'price-asc':
+            orderBy = { price: 'asc' };
+            break;
+          case 'price-desc':
+            orderBy = { price: 'desc' };
+            break;
+          case 'name':
+            orderBy = { name: 'asc' };
+            break;
+          default:
+            orderBy = { createdAt: 'desc' };
+        }
+      }
+      
+      console.log("Ordem:", orderBy);
+      
+      // Busca produtos - dividida em duas etapas para identificar onde está o erro
+      console.log("Preparando para executar consulta Prisma...");
+      
+      // Primeiro obtém produtos
+      console.log("Buscando produtos...");
+      const products = await prisma.product.findMany({
+        where,
+        skip,
+        take: limit,
         include: {
           category: true,
           brand: true
         },
-        orderBy: {
-          createdAt: 'desc'
+        orderBy
+      });
+      
+      console.log(`Encontrados ${products.length} produtos`);
+      
+      // Depois conta total
+      console.log("Contando total de produtos...");
+      const total = await prisma.product.count({ where });
+      
+      console.log(`Total de produtos: ${total}`);
+      
+      res.json({
+        products,
+        pagination: {
+          total,
+          pages: Math.ceil(total / limit),
+          currentPage: page,
+          perPage: limit
         }
-      }),
-      prisma.product.count() // Total de produtos para paginação
-    ]);
-
-    res.json({
-      products,
-      pagination: {
-        total,
-        pages: Math.ceil(total / limit),
-        currentPage: Number(page),
-        perPage: Number(limit)
-      }
-    });
+      });
+      
+    } catch (innerError) {
+      console.error("ERRO DETALHADO NA CONSTRUÇÃO DA CONSULTA:", innerError);
+      throw innerError; // Relançar para ser capturado pelo try/catch externo
+    }
+    
   } catch (error) {
-    console.error('Erro ao buscar produtos:', error);
-    res.status(500).json({ error: error.message });
+    console.error('ERRO CRÍTICO ao buscar produtos:', error);
+    console.error('Stack trace:', error.stack);
+    res.status(500).json({ 
+      error: error.message,
+      errorDetail: error.toString(),
+      stack: error.stack
+    });
   }
 };
 

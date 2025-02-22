@@ -1,31 +1,80 @@
 import api from './api';
 
 export const productService = {
-  getAll: async (page = 1, limit = 12) => {
+  getAll: async (page = 1, limit = 12, filters = {}) => {
     try {
-      const response = await api.get('/products', {
-        params: { page, limit }
-      });
-      return {
-        products: response.data.products || [],
-        pagination: response.data.pagination || { 
-          total: 0, 
-          pages: 1,
-          currentPage: 1,
-          perPage: limit
+      console.log("=== INÍCIO DA REQUISIÇÃO getAll ===");
+      const { search, category, brand, minPrice, maxPrice, sort } = filters;
+      
+      // Construir parâmetros validados
+      const params = { page, limit };
+      
+      // Adicionar apenas parâmetros com valores definidos
+      if (search) params.search = String(search).trim();
+      if (category) params.category = String(category).trim();
+      if (brand) params.brand = String(brand).trim();
+      if (minPrice !== undefined) params.minPrice = Number(minPrice) || 0;
+      if (maxPrice !== undefined) params.maxPrice = Number(maxPrice) || 5000;
+      if (sort) params.sort = String(sort).trim();
+      
+      console.log("Parâmetros validados para API:", params);
+      
+      try {
+        const response = await api.get('/products', { params });
+        console.log("Resposta da API recebida com sucesso");
+        
+        return {
+          products: response.data.products || [],
+          pagination: response.data.pagination || { 
+            total: 0, 
+            pages: 1,
+            currentPage: 1,
+            perPage: limit
+          }
+        };
+      } catch (apiError) {
+        console.error('Erro na chamada à API:', apiError.message);
+        console.error('Detalhes do erro:', {
+          status: apiError.response?.status,
+          statusText: apiError.response?.statusText,
+          data: apiError.response?.data,
+          url: apiError.config?.url,
+          params: apiError.config?.params
+        });
+        
+        // Tentar uma segunda vez sem o parâmetro de busca se o erro for 500
+        if (apiError.response?.status === 500 && params.search) {
+          console.log("Tentando requisição novamente sem parâmetro de busca");
+          const backupParams = { ...params };
+          delete backupParams.search;
+          
+          // Tentativa de fallback
+          try {
+            const fallbackResponse = await api.get('/products', { params: backupParams });
+            console.log("Fallback bem-sucedido");
+            
+            return {
+              products: fallbackResponse.data.products || [],
+              pagination: fallbackResponse.data.pagination || { 
+                total: 0, 
+                pages: 1,
+                currentPage: 1,
+                perPage: limit
+              }
+            };
+          } catch (fallbackError) {
+            console.error('Erro no fallback:', fallbackError.message);
+            throw fallbackError;
+          }
         }
-      };
+        
+        throw apiError;
+      }
     } catch (error) {
       console.error('Erro ao buscar produtos:', error);
-      return { 
-        products: [], 
-        pagination: { 
-          total: 0, 
-          pages: 1,
-          currentPage: 1,
-          perPage: limit
-        } 
-      };
+      throw error;
+    } finally {
+      console.log("=== FIM DA REQUISIÇÃO getAll ===");
     }
   },
 
