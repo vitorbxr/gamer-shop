@@ -1,3 +1,4 @@
+// src/pages/admin/Orders.jsx
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -7,13 +8,12 @@ import {
   Tr,
   Th,
   Td,
-  Select,
   Badge,
-  IconButton,
-  useToast,
   Spinner,
   Text,
   Heading,
+  useToast,
+  Select,
   Modal,
   ModalOverlay,
   ModalContent,
@@ -24,27 +24,24 @@ import {
   FormControl,
   FormLabel,
   Input,
-  Button,
+  Button
 } from '@chakra-ui/react';
-import { ViewIcon } from '@chakra-ui/icons';
 import AdminLayout from '../../components/admin/AdminLayout';
 import OrderDetailsModal from '../../components/admin/OrderDetailsModal';
+import OrderActions from '../../components/admin/OrderActions';
 import { formatPrice, formatDate } from '../../utils/format';
 import api from '../../services/api';
 
 function Orders() {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [isTrackingModalOpen, setIsTrackingModalOpen] = useState(false);
   const [trackingNumber, setTrackingNumber] = useState('');
   const [pendingStatusChange, setPendingStatusChange] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const toast = useToast();
-
-  useEffect(() => {
-    loadOrders();
-  }, []);
 
   const loadOrders = async () => {
     try {
@@ -63,6 +60,21 @@ function Orders() {
     }
   };
 
+  const handleViewOrder = async (orderId) => {
+    try {
+      const response = await api.get(`/orders/${orderId}`);
+      setSelectedOrder(response.data);
+      setIsModalOpen(true);
+    } catch (error) {
+      toast({
+        title: 'Erro ao carregar detalhes do pedido',
+        description: error.response?.data?.message || 'Ocorreu um erro ao carregar os detalhes do pedido',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
   const handleStatusChange = async (orderId, newStatus) => {
     // Se o status for SHIPPED, abrir modal para código de rastreio
     if (newStatus === 'SHIPPED') {
@@ -73,17 +85,17 @@ function Orders() {
 
     try {
       await api.patch(`/orders/${orderId}/status`, { status: newStatus });
-      loadOrders();
+      await loadOrders();
       toast({
-        title: 'Status atualizado',
-        status: 'success',
+        title: "Status atualizado",
+        status: "success",
         duration: 2000,
       });
     } catch (error) {
       toast({
-        title: 'Erro ao atualizar status',
+        title: "Erro ao atualizar status",
         description: error.response?.data?.message,
-        status: 'error',
+        status: "error",
         duration: 3000,
       });
     }
@@ -92,45 +104,62 @@ function Orders() {
   const handleConfirmShipping = async () => {
     if (!trackingNumber.trim()) {
       toast({
-        title: 'Código de rastreio obrigatório',
-        description: 'Por favor, insira o código de rastreio para marcar como enviado.',
-        status: 'warning',
+        title: "Código de rastreio obrigatório",
+        description: "Por favor, insira o código de rastreio para marcar como enviado.",
+        status: "warning",
         duration: 3000,
       });
       return;
     }
 
     try {
-      // Primeiro atualiza o código de rastreio
+      setIsSubmitting(true); // Ativa o estado de loading
+      
+      // Atualiza o código de rastreio e o status
       await api.post(`/orders/${pendingStatusChange.orderId}/tracking`, {
-        trackingNumber: trackingNumber
+        trackingNumber
       });
 
-      // Depois atualiza o status
-      await api.patch(`/orders/${pendingStatusChange.orderId}/status`, {
-        status: pendingStatusChange.status
+      await loadOrders();
+      
+      toast({
+        title: "Pedido enviado",
+        description: "Código de rastreio adicionado e status atualizado.",
+        status: "success",
+        duration: 3000,
       });
-
-      loadOrders();
+      
+      // Fecha o modal e limpa os estados
       setIsTrackingModalOpen(false);
       setTrackingNumber('');
       setPendingStatusChange(null);
-
-      toast({
-        title: 'Pedido atualizado',
-        description: 'Status e código de rastreio atualizados com sucesso.',
-        status: 'success',
-        duration: 3000,
-      });
     } catch (error) {
       toast({
-        title: 'Erro ao atualizar pedido',
-        description: error.response?.data?.message || 'Ocorreu um erro ao atualizar o pedido',
-        status: 'error',
+        title: "Erro ao atualizar pedido",
+        description: error.response?.data?.message || "Ocorreu um erro ao atualizar o pedido",
+        status: "error",
         duration: 3000,
       });
+    } finally {
+      setIsSubmitting(false); // Desativa o estado de loading
     }
   };
+
+  const refreshOrderData = async () => {
+    await loadOrders();
+    if (selectedOrder) {
+      try {
+        const response = await api.get(`/orders/${selectedOrder.id}`);
+        setSelectedOrder(response.data);
+      } catch (error) {
+        console.error('Erro ao atualizar dados do pedido:', error);
+      }
+    }
+  };
+
+  useEffect(() => {
+    loadOrders();
+  }, []);
 
   const getStatusColor = (status) => {
     const colors = {
@@ -215,13 +244,10 @@ function Orders() {
                 </Td>
                 <Td isNumeric>{formatPrice(order.totalAmount)}</Td>
                 <Td>
-                  <IconButton
-                    icon={<ViewIcon />}
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setIsModalOpen(true);
-                    }}
-                    aria-label="Ver detalhes"
+                  <OrderActions 
+                    order={order}
+                    onView={() => handleViewOrder(order.id)}
+                    onRefresh={refreshOrderData}
                   />
                 </Td>
               </Tr>
@@ -229,26 +255,23 @@ function Orders() {
           </Tbody>
         </Table>
 
-        <OrderDetailsModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          order={selectedOrder}
-          onUpdateStatus={handleStatusChange}
-        />
-
-        {/* Modal para código de rastreio */}
+        {/* Modal de Código de Rastreio */}
         <Modal 
           isOpen={isTrackingModalOpen} 
           onClose={() => {
-            setIsTrackingModalOpen(false);
-            setPendingStatusChange(null);
-            setTrackingNumber('');
+            if (!isSubmitting) {
+              setIsTrackingModalOpen(false);
+              setPendingStatusChange(null);
+              setTrackingNumber('');
+            }
           }}
+          closeOnOverlayClick={!isSubmitting}
+          closeOnEsc={!isSubmitting}
         >
           <ModalOverlay />
           <ModalContent>
             <ModalHeader>Adicionar Código de Rastreio</ModalHeader>
-            <ModalCloseButton />
+            {!isSubmitting && <ModalCloseButton />}
             <ModalBody>
               <FormControl isRequired>
                 <FormLabel>Código de Rastreio CTT</FormLabel>
@@ -256,24 +279,49 @@ function Orders() {
                   value={trackingNumber}
                   onChange={(e) => setTrackingNumber(e.target.value)}
                   placeholder="Digite o código de rastreio"
+                  isDisabled={isSubmitting}
                 />
               </FormControl>
             </ModalBody>
 
             <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={handleConfirmShipping}>
+              <Button 
+                colorScheme="blue" 
+                mr={3} 
+                onClick={handleConfirmShipping}
+                isLoading={isSubmitting}
+                loadingText="Processando"
+                isDisabled={isSubmitting || !trackingNumber.trim()}
+              >
                 Confirmar
               </Button>
-              <Button variant="ghost" onClick={() => {
-                setIsTrackingModalOpen(false);
-                setPendingStatusChange(null);
-                setTrackingNumber('');
-              }}>
+              <Button 
+                variant="ghost" 
+                onClick={() => {
+                  if (!isSubmitting) {
+                    setIsTrackingModalOpen(false);
+                    setPendingStatusChange(null);
+                    setTrackingNumber('');
+                  }
+                }}
+                isDisabled={isSubmitting}
+              >
                 Cancelar
               </Button>
             </ModalFooter>
           </ModalContent>
         </Modal>
+
+        {/* Modal de Detalhes do Pedido */}
+        <OrderDetailsModal
+          isOpen={isModalOpen}
+          onClose={() => {
+            setIsModalOpen(false);
+            setSelectedOrder(null);
+          }}
+          order={selectedOrder}
+          onRefresh={refreshOrderData}
+        />
       </Box>
     </AdminLayout>
   );

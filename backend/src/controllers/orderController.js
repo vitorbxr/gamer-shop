@@ -91,7 +91,7 @@ export const orderController = {
           });
         }
 
-        // Buscar o pedido completo com todas as relações para o email
+        // Buscar o pedido completo com todas as relações
         const completeOrder = await tx.order.findUnique({
           where: { id: newOrder.id },
           include: {
@@ -153,7 +153,8 @@ export const orderController = {
               product: {
                 select: {
                   name: true,
-                  image: true
+                  image: true,
+                  price: true
                 }
               }
             }
@@ -207,7 +208,8 @@ export const orderController = {
                 select: {
                   id: true,
                   name: true,
-                  image: true
+                  image: true,
+                  price: true
                 }
               }
             }
@@ -253,8 +255,10 @@ export const orderController = {
             include: {
               product: {
                 select: {
+                  id: true,
                   name: true,
-                  image: true
+                  image: true,
+                  price: true
                 }
               }
             }
@@ -267,11 +271,6 @@ export const orderController = {
 
       if (!order) {
         return res.status(404).json({ message: 'Pedido não encontrado' });
-      }
-
-      // Verifica se o usuário tem permissão para ver este pedido
-      if (order.userId !== req.user.userId && req.user.role !== 'ADMIN') {
-        return res.status(403).json({ message: 'Não autorizado' });
       }
 
       res.json(order);
@@ -320,19 +319,21 @@ export const orderController = {
   updateTrackingNumber: async (req, res) => {
     const { id } = req.params;
     const { trackingNumber } = req.body;
-
+  
     try {
-      // Atualiza o pedido com o código de rastreio
+      console.log('Atualizando rastreio e status:', { id, trackingNumber });
+  
+      // Atualiza em uma única operação
       const order = await prisma.order.update({
         where: { id: parseInt(id) },
         data: {
+          status: 'SHIPPED',  // Atualiza o status do pedido para 'SHIPPED'
           shipping: {
             update: {
               trackingCode: trackingNumber,
-              status: 'SHIPPED'
+              status: 'SHIPPED'  // Atualiza o status do shipping também
             }
-          },
-          status: 'SHIPPED'
+          }
         },
         include: {
           user: true,
@@ -344,33 +345,103 @@ export const orderController = {
           shipping: true
         }
       });
-
-      // Envia email de atualização para o cliente
+  
+      // Envia email de atualização para o cliente com o código de rastreio
       try {
         await EmailService.sendOrderStatusUpdate(order, order.user);
+        console.log('Email de atualização enviado');
       } catch (emailError) {
         console.error('Erro ao enviar email:', emailError);
+        logService.error('Erro ao enviar email de atualização', emailError);
       }
-
-      logService.info('Código de rastreio adicionado', { orderId: order.id, trackingNumber });
+  
+      logService.info('Código de rastreio adicionado e status atualizado', {
+        orderId: order.id,
+        trackingNumber,
+        status: 'SHIPPED'
+      });
+  
       res.json(order);
     } catch (error) {
-      console.error('Erro ao adicionar código de rastreio:', error);
-      logService.error('Erro ao adicionar código de rastreio', error);
-      res.status(500).json({ 
-        message: 'Erro ao adicionar código de rastreio'
+      console.error('Erro ao atualizar rastreio:', error);
+      logService.error('Erro ao atualizar rastreio e status', error);
+      res.status(500).json({
+        message: 'Erro ao atualizar pedido',
+        error: error.message
       });
     }
   },
 
-  getTrackingInfo: async (req, res) => {
+  // Método atualizado baseado no updateStatus
+  updateOrder: async (req, res) => {
+    const { id } = req.params;
+    const { shipping } = req.body;
+  
+    try {
+      console.log('Iniciando atualização do pedido:', { id, shipping });
+      
+      const order = await prisma.order.update({
+        where: { id: parseInt(id) },
+        data: {
+          shipping: {
+            update: {
+              address: shipping.address,
+              city: shipping.city,
+              postalCode: shipping.postalCode,
+              trackingCode: shipping.trackingCode
+            }
+          }
+        },
+        include: {
+          user: true,
+          items: {
+            include: {
+              product: true
+            }
+          },
+          shipping: true,
+          payment: true
+        }
+      });
+  
+      console.log('Pedido atualizado com sucesso:', { 
+        orderId: order.id, 
+        user: order.user.email,
+        shipping: order.shipping
+      });
+  
+      // Usa a função existente de atualização de status, mas com um status especial
+      try {
+        console.log('Tentando enviar email...');
+        // Cria uma cópia do pedido com um status especial para notificação de atualização de dados
+        const tempOrder = { ...order, status: "DADOS_ATUALIZADOS" };
+        await EmailService.sendOrderStatusUpdate(tempOrder, order.user);
+        console.log('Email enviado com sucesso!');
+      } catch (emailError) {
+        console.error('Erro ao enviar email:', emailError);
+        logService.error('Erro ao enviar email de atualização', emailError);
+      }
+  
+      logService.info('Pedido atualizado com sucesso', { orderId: order.id });
+      res.json(order);
+    } catch (error) {
+      console.error('Erro ao atualizar pedido:', error);
+      logService.error('Erro ao atualizar pedido', error);
+      res.status(500).json({ message: 'Erro ao atualizar pedido' });
+    }
+  },
+
+  deleteOrder: async (req, res) => {
     const { id } = req.params;
 
     try {
+      // Verificar se o pedido existe
       const order = await prisma.order.findUnique({
         where: { id: parseInt(id) },
         include: {
-          shipping: true
+          items: true,
+          shipping: true,
+          payment: true
         }
       });
 
@@ -378,15 +449,59 @@ export const orderController = {
         return res.status(404).json({ message: 'Pedido não encontrado' });
       }
 
-      if (!order.shipping?.trackingCode) {
-        return res.status(400).json({ message: 'Pedido sem código de rastreio' });
-      }
+      // Executar a exclusão em uma transação
+      await prisma.$transaction(async (tx) => {
+        // 1. Restaurar o estoque dos produtos
+        for (const item of order.items) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: {
+                increment: item.quantity
+              }
+            }
+          });
+        }
 
-      const trackingInfo = await trackingService.getTrackingInfo(order.shipping.trackingCode);
-      res.json(trackingInfo);
+        // 2. Deletar registros relacionados
+        await tx.orderItem.deleteMany({
+          where: { orderId: order.id }
+        });
+
+        await tx.payment.deleteMany({
+          where: { orderId: order.id }
+        });
+
+        await tx.shipping.deleteMany({
+          where: { orderId: order.id }
+        });
+
+        await tx.review.deleteMany({
+          where: { orderId: order.id }
+        });
+
+        // 3. Finalmente deletar o pedido
+        await tx.order.delete({
+          where: { id: order.id }
+        });
+      });
+
+      logService.info('Pedido excluído com sucesso', { 
+        orderId: order.id
+      });
+
+      res.json({ 
+        message: 'Pedido excluído com sucesso',
+        orderId: order.id
+      });
+
     } catch (error) {
-      console.error('Erro ao obter informações de rastreio:', error);
-      res.status(500).json({ message: 'Erro ao obter informações de rastreio' });
+      console.error('Erro ao excluir pedido:', error);
+      logService.error('Erro ao excluir pedido', error);
+      res.status(500).json({ 
+        message: 'Erro ao excluir pedido',
+        error: error.message 
+      });
     }
   }
 };
