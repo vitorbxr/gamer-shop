@@ -41,6 +41,7 @@ function App() {
                 <Route path="/product/:id" element={<ProductDetail />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/wishlist" element={<Wishlist />} />
                 
                 {/* Rotas Protegidas */}
                 <Route 
@@ -72,14 +73,6 @@ function App() {
                   element={
                     <PrivateRoute>
                       <OrderHistory />
-                    </PrivateRoute>
-                  } 
-                />
-                <Route 
-                  path="/wishlist" 
-                  element={
-                    <PrivateRoute>
-                      <Wishlist />
                     </PrivateRoute>
                   } 
                 />

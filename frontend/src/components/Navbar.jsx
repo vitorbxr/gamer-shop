@@ -17,15 +17,18 @@ import {
   Text,
   HStack,
   Badge,
+  Tooltip,
 } from '@chakra-ui/react';
-import { SearchIcon, ChevronDownIcon } from '@chakra-ui/icons';
+import { SearchIcon, ChevronDownIcon, StarIcon } from '@chakra-ui/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCart } from '../contexts/CartContext';
+import { useWishlist } from '../contexts/WishlistContext';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const { itemCount } = useCart();
+  const { wishlist } = useWishlist();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -70,6 +73,32 @@ export default function Navbar() {
         </Flex>
 
         <Stack direction="row" spacing={4} alignItems="center">
+          {/* Botão de Wishlist */}
+          <Box position="relative">
+            <Tooltip label="Meus Favoritos">
+              <Link to="/wishlist">
+                <IconButton
+                  icon={<StarIcon />}
+                  variant="ghost"
+                  colorScheme="yellow"
+                  aria-label="Favoritos"
+                />
+                {wishlist.length > 0 && (
+                  <Badge
+                    colorScheme="red"
+                    borderRadius="full"
+                    position="absolute"
+                    top="-1"
+                    right="-1"
+                  >
+                    {wishlist.length}
+                  </Badge>
+                )}
+              </Link>
+            </Tooltip>
+          </Box>
+          
+          {/* Botão de Carrinho */}
           <Box position="relative">
             <Link to="/cart">
               <Button variant="ghost">
@@ -104,6 +133,7 @@ export default function Navbar() {
               <MenuList>
                 <MenuItem as={Link} to="/profile">Meu Perfil</MenuItem>
                 <MenuItem as={Link} to="/orders">Meus Pedidos</MenuItem>
+                <MenuItem as={Link} to="/wishlist">Meus Favoritos</MenuItem>
                 {user.role === 'ADMIN' && (
                   <MenuItem as={Link} to="/admin">Painel Admin</MenuItem>
                 )}
